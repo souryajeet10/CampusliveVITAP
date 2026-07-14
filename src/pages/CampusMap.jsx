@@ -1,0 +1,920 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  MapPin, 
+  Sparkles, 
+  Flame, 
+  Trophy, 
+  Calendar, 
+  Search, 
+  ArrowUpRight, 
+  Navigation, 
+  Compass,
+  AlertCircle,
+  Clock,
+  X,
+  Plus,
+  CheckCircle2,
+  AlertTriangle,
+  Users
+} from 'lucide-react';
+import { 
+  VIT_AP_CENTER, 
+  VIT_AP_BOUNDS, 
+  accentGradients, 
+  iconMapping, 
+  mockEvents 
+} from '../utils/constants';
+import { auth } from '../firebase/firebase';
+import { addActivity, subscribeActivities, joinActivity } from '../services/activityService';
+
+
+// Helper to convert 24h format "14:00" to 12h format "2:00 PM"
+const formatTime12h = (timeStr) => {
+  if (!timeStr) return '';
+  const [hoursStr, minutesStr] = timeStr.split(':');
+  let hours = parseInt(hoursStr, 10);
+  const minutes = minutesStr;
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  return `${hours}:${minutes} ${ampm}`;
+};
+
+
+// Reusable Close Popup component inside React Leaflet Popups
+const PopupCloseButton = () => {
+  const map = useMap();
+  return (
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        map.closePopup();
+      }}
+      className="p-1 rounded-md hover:bg-slate-900/60 text-gray-500 hover:text-white transition-all duration-150 cursor-pointer"
+      title="Close Details"
+    >
+      <X className="w-3.5 h-3.5" />
+    </button>
+  );
+};
+
+// Shimmering skeleton component for loading activities list
+const ActivitySkeleton = () => (
+  <div className="p-3.5 rounded-xl border border-slate-900/60 bg-slate-950/20 space-y-2.5 animate-pulse select-none">
+    <div className="flex items-center justify-between">
+      <div className="w-14 h-4 bg-slate-800/60 rounded animate-pulse" />
+      <div className="w-12 h-3.5 bg-slate-850 rounded" />
+    </div>
+    <div className="w-4/5 h-4 bg-slate-800/80 rounded" />
+    <div className="flex items-center gap-2">
+      <div className="w-3.5 h-3.5 rounded-full bg-slate-850" />
+      <div className="w-24 h-3 bg-slate-850 rounded" />
+    </div>
+  </div>
+);
+
+// Reusable animated popup card component for Map Markers
+const ActivityPopup = ({ event, currentUserId, joiningId, onJoin }) => {
+  const hasJoined = event.participants?.includes(currentUserId);
+  const isJoining = joiningId === event.id;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.92, y: 8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="relative w-[265px] bg-[#0b0f19] border border-slate-900/60 rounded-2xl overflow-hidden shadow-2xl font-sans text-slate-350"
+    >
+      {/* Decorative Colored Accent Bar at the top */}
+      <div className={`h-1 w-full bg-gradient-to-r ${accentGradients[event.color]}`} />
+      
+      <div className="p-4 space-y-3">
+        {/* Header: Category / Live Badge & Close button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
+              ${event.isLive 
+                ? 'bg-rose-500/10 text-rose-450 border-rose-500/20' 
+                : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+              }`}
+            >
+              {event.isLive ? '● Live' : 'Upcoming'}
+            </span>
+            <span className="text-[9px] text-gray-505 font-semibold uppercase tracking-wider">{event.category}</span>
+          </div>
+          <PopupCloseButton />
+        </div>
+
+        {/* Body: Activity Name, Location, Duration, Description */}
+        <div className="space-y-1.5 text-left">
+          <h4 className="text-xs font-extrabold text-white leading-tight">
+            {event.name}
+          </h4>
+          <div className="flex items-center gap-2.5 text-[10px] text-gray-400">
+            <div className="flex items-center gap-1 min-w-0">
+              <MapPin className="w-3 h-3 text-indigo-400 shrink-0" />
+              <span className="truncate max-w-[100px]">{event.room}</span>
+            </div>
+            <div className="flex items-center gap-1 border-l border-slate-900/60 pl-2.5 min-w-0">
+              <Calendar className="w-3 h-3 text-indigo-400 shrink-0" />
+              <span className="truncate max-w-[90px]">{event.time}</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-500 leading-normal pt-1">
+            {event.description}
+          </p>
+          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 select-none pt-1">
+            <Users className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span>{event.participantCount} attending</span>
+          </div>
+        </div>
+
+        {/* Footer: Created Time & Join Button */}
+        <div className="pt-3 border-t border-slate-900/60 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[9px] text-gray-500">
+            <Clock className="w-3.5 h-3.5 text-gray-655" />
+            <span>Created {event.createdTime}</span>
+          </div>
+          <button 
+            disabled={hasJoined || isJoining}
+            onClick={() => onJoin(event.id)}
+            className={`h-6.5 px-3 rounded-lg text-white font-bold text-[9px] transition-all flex items-center gap-1 shadow-sm disabled:opacity-75 disabled:cursor-not-allowed
+              ${hasJoined 
+                ? 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-450' 
+                : `bg-gradient-to-tr ${accentGradients[event.color]} hover:opacity-90 active:scale-95 cursor-pointer`
+              }`}
+          >
+            {isJoining ? (
+              <>
+                <div className="w-2.5 h-2.5 border border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                <span>Joining...</span>
+              </>
+            ) : hasJoined ? (
+              <>
+                <CheckCircle2 className="w-2.5 h-2.5 shrink-0 text-emerald-400" />
+                <span>Joined</span>
+              </>
+            ) : (
+              <>
+                <span>Join</span>
+                <ArrowUpRight className="w-2.5 h-2.5" />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Map click listener sub-component
+const MapClickSelector = ({ onMapClick }) => {
+  useMapEvents({
+    click(e) {
+      onMapClick(e.latlng);
+    },
+  });
+  return null;
+};
+
+// Map controller sub-component to handle programmatic panning (flyTo)
+const MapController = ({ center, zoom }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, zoom, {
+        animate: true,
+        duration: 1.2
+      });
+    }
+  }, [center, zoom, map]);
+  return null;
+};
+
+// Function to generate a premium custom HTML marker icon
+const createCustomIcon = (color, isLive) => {
+  const colorMap = {
+    indigo: { primary: '#6366f1', glow: 'rgba(99, 102, 241, 0.5)' },
+    purple: { primary: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)' },
+    pink: { primary: '#ec4899', glow: 'rgba(236, 72, 153, 0.5)' },
+    emerald: { primary: '#10b981', glow: 'rgba(16, 185, 129, 0.5)' },
+    blue: { primary: '#3b82f6', glow: 'rgba(59, 130, 246, 0.5)' },
+    amber: { primary: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)' },
+  };
+
+  const selected = colorMap[color] || colorMap.indigo;
+
+  // Pulsing background ring for Live pins
+  const pulseHtml = isLive 
+    ? `<span class="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style="background-color: ${selected.primary};"></span>`
+    : '';
+
+  return L.divIcon({
+    className: '', // Clear standard leaflet square border/background
+    html: `
+      <div class="relative flex items-center justify-center w-8 h-8 animate-marker-in">
+        ${pulseHtml}
+        <div class="relative flex items-center justify-center w-6.5 h-6.5 rounded-full border border-[#1e293b] shadow-lg text-white" 
+             style="background: linear-gradient(135deg, ${selected.primary}, #06090f); box-shadow: 0 0 12px ${selected.glow}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+};
+
+// Icon Cache Map to prevent recreating Leaflet divIcons on every React render loop
+const customIconCache = {};
+const getCachedCustomIcon = (color, isLive) => {
+  const cacheKey = `${color}-${isLive}`;
+  if (!customIconCache[cacheKey]) {
+    customIconCache[cacheKey] = createCustomIcon(color, isLive);
+  }
+  return customIconCache[cacheKey];
+};
+
+const CampusMap = () => {
+  const [events, setEvents] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mobileView, setMobileView] = useState('map');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [tempCoords, setTempCoords] = useState(null); // Selected placement coordinates
+
+  // Form State
+  const [title, setTitle] = useState('');
+  const [room, setRoom] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('Tech');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [isLive, setIsLive] = useState(true);
+
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [mapCenter, setMapCenter] = useState(VIT_AP_CENTER);
+  const [mapZoom, setMapZoom] = useState(16);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const [activeFilter, setActiveFilter] = useState('All');
+
+  // Submit and Toast feedback states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+  
+  // Join loader and user variables
+  const [joiningId, setJoiningId] = useState(null);
+  const { currentUser } = useAuth();
+  const currentUserId = currentUser?.id || 'aarav_sharma_uid';
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleJoinActivity = async (activityId) => {
+    setJoiningId(activityId);
+    try {
+      await joinActivity(activityId, currentUserId);
+      showToast('Successfully joined the activity!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to join activity.', 'error');
+    } finally {
+      setJoiningId(null);
+    }
+  };
+
+
+  // Real-time Firestore subscription hook
+  useEffect(() => {
+    const unsubscribe = subscribeActivities(
+      (firestoreActivities) => {
+        const categoryColors = {
+          Study: 'blue',
+          Sports: 'emerald',
+          Food: 'pink',
+          Tech: 'indigo',
+          Music: 'purple',
+          Gaming: 'amber'
+        };
+        const iconNames = {
+          Study: 'Calendar',
+          Sports: 'Trophy',
+          Food: 'Flame',
+          Tech: 'Sparkles',
+          Music: 'Flame',
+          Gaming: 'Trophy'
+        };
+
+        const mapped = firestoreActivities.map((act) => ({
+          id: act.id,
+          name: act.name,
+          room: act.room || 'Campus Commons',
+          category: act.category,
+          coordinates: [act.latitude, act.longitude],
+          description: act.description,
+          isLive: act.isLive ?? true,
+          color: categoryColors[act.category] || 'indigo',
+          time: (act.startTime && act.endTime)
+            ? `${formatTime12h(act.startTime)} - ${formatTime12h(act.endTime)}`
+            : (act.duration || 'Ends Soon'),
+          startTime: act.startTime || '',
+          endTime: act.endTime || '',
+          createdTime: act.createdAt 
+            ? new Date(act.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+            : 'Just now',
+          iconName: iconNames[act.category] || 'Sparkles',
+          participants: act.participants || [],
+          participantCount: (act.participants || []).length
+        }));
+
+        setEvents(mapped);
+        setIsLoading(false);
+        setIsError(false);
+      },
+      (error) => {
+        console.error(error);
+        setIsError(true);
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Close modal on Escape key press for accessibility
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isModalOpen) {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
+
+
+  const handleOpenModal = () => {
+    setTempCoords(mapCenter); // Default to current map view center
+    setIsModalOpen(true);
+  };
+
+  const handleMapClick = (latlng) => {
+    const coords = [latlng.lat, latlng.lng];
+    setTempCoords(coords);
+    setIsModalOpen(true);
+  };
+
+  const handleCreateActivity = async (e) => {
+    e.preventDefault();
+    if (!title.trim() || !description.trim() || !startTime.trim() || !endTime.trim()) {
+      showToast('Please fill out all required fields.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const coordinates = tempCoords || mapCenter;
+
+      const activityData = {
+        name: title,
+        room: room || 'Campus Commons',
+        category,
+        latitude: coordinates[0],
+        longitude: coordinates[1],
+        description,
+        isLive,
+        startTime,
+        endTime,
+        createdBy: currentUserId
+      };
+
+      await addActivity(activityData);
+      showToast('Activity created successfully!', 'success');
+
+      // Reset Form State
+      setTitle('');
+      setRoom('');
+      setDescription('');
+      setCategory('Tech');
+      setStartTime('');
+      setEndTime('');
+      setIsLive(true);
+      setTempCoords(null);
+      
+      setIsModalOpen(false);
+
+      // Focus and close map view to marker
+      setMapCenter(coordinates);
+      setMapZoom(18);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to save activity to Firestore.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  const handleSelectEvent = (event) => {
+    setSelectedEvent(event);
+    setMapCenter(event.coordinates);
+    setMapZoom(18); // Zoom in closer on selection
+  };
+
+  const handleRecenter = () => {
+    setSelectedEvent(null);
+    setMapCenter(VIT_AP_CENTER);
+    setMapZoom(16);
+  };
+
+  // Filter events based on active category & debounced search query
+  const filteredEvents = events.filter(event => {
+    const matchesFilter = activeFilter === 'All' || event.category === activeFilter;
+    const cleanSearch = debouncedSearchQuery.toLowerCase();
+    const matchesSearch = 
+      event.name.toLowerCase().includes(cleanSearch) || 
+      event.category.toLowerCase().includes(cleanSearch) ||
+      event.description.toLowerCase().includes(cleanSearch) ||
+      event.room.toLowerCase().includes(cleanSearch);
+    return matchesFilter && matchesSearch;
+  });
+
+  const categories = ['All', 'Study', 'Sports', 'Food', 'Tech', 'Music', 'Gaming'];
+
+  return (
+    <div className="flex flex-col gap-4 h-[calc(100vh-175px)] md:h-[calc(100vh-130px)] min-h-[480px] w-full text-slate-350 overflow-hidden">
+      
+      {/* Mobile View Selector Tabs */}
+      <div className="flex md:hidden bg-slate-950/60 p-1 rounded-xl border border-slate-900/60 w-full flex-shrink-0 select-none">
+        <button
+          onClick={() => setMobileView('map')}
+          className={`flex-1 py-1.5 text-center text-[10px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5
+            ${mobileView === 'map' 
+              ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' 
+              : 'text-gray-500 border border-transparent'
+            }`}
+        >
+          <Compass className="w-3.5 h-3.5" />
+          <span>Campus Map</span>
+        </button>
+        <button
+          onClick={() => setMobileView('list')}
+          className={`flex-1 py-1.5 text-center text-[10px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5
+            ${mobileView === 'list' 
+              ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' 
+              : 'text-gray-500 border border-transparent'
+            }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>Directory List</span>
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col md:flex-row gap-6 h-full min-h-0 w-full overflow-hidden">
+        {/* 1. Sidebar Control Panel */}
+        <div className={`w-full md:w-[280px] lg:w-[320px] flex-col bg-[#080b11] border border-slate-900 rounded-2xl p-4 md:p-5 shadow-xl h-full overflow-hidden
+          ${mobileView === 'list' ? 'flex' : 'hidden md:flex'}`}>
+        
+        {/* Sidebar Header & Search */}
+        <div className="space-y-4 mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Compass className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Campus Directory</h3>
+            </div>
+            <button 
+              onClick={handleRecenter}
+              title="Recenter Campus Map"
+              className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-850 hover:border-slate-800 text-gray-400 hover:text-white transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Navigation className="w-3.5 h-3.5 rotate-45" />
+              <span className="hidden sm:inline text-[10px] font-semibold">Center</span>
+            </button>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
+            <input
+              type="text"
+              placeholder="Search event, block, hall..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-9 pr-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-650 focus:outline-none focus:border-indigo-500/80 transition-all text-xs font-medium"
+            />
+          </div>
+
+          {/* Categories Horizontal Scroll */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveFilter(cat)}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all border shrink-0 cursor-pointer
+                  ${activeFilter === cat 
+                    ? 'bg-indigo-600/10 border-indigo-500/25 text-indigo-400' 
+                    : 'bg-slate-950/40 border-slate-900 text-gray-500 hover:text-gray-300 hover:bg-slate-900/50'
+                  }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>        {/* Directory Event List */}
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-0">
+          {isError ? (
+            <div className="h-full flex flex-col items-center justify-center p-6 text-center select-none space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 shadow-md">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-rose-450 uppercase tracking-wider">Sync Error</p>
+                <p className="text-[10px] text-gray-500 mt-1 max-w-[200px] leading-relaxed">
+                  Failed to connect to the campus feed. Check your connection or security rules.
+                </p>
+              </div>
+            </div>
+          ) : isLoading ? (
+            <div className="space-y-2">
+              <ActivitySkeleton />
+              <ActivitySkeleton />
+              <ActivitySkeleton />
+              <ActivitySkeleton />
+            </div>
+          ) : filteredEvents.length > 0 ? (
+            <AnimatePresence mode="popLayout">
+              {filteredEvents.map((event) => {
+                const IconComp = iconMapping[event.iconName] || Sparkles;
+                const isSelected = selectedEvent?.id === event.id;
+                
+                return (
+                  <motion.div 
+                    key={event.id}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => handleSelectEvent(event)}
+                    className={`p-3.5 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col justify-between text-left group select-none hover:translate-x-0.5
+                      ${isSelected 
+                        ? 'bg-indigo-500/5 border-indigo-500/40 shadow-sm shadow-indigo-500/5' 
+                        : 'bg-slate-950/20 border-slate-900 hover:border-slate-800 hover:bg-slate-900/10'
+                      }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <span className="text-xs font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-1">
+                        {event.name}
+                      </span>
+                      <span className={`text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border shrink-0
+                        ${event.isLive 
+                          ? 'bg-rose-500/15 text-rose-400 border-rose-500/20 animate-pulse' 
+                          : 'bg-slate-900 text-gray-400 border-slate-850'
+                        }`}
+                      >
+                        {event.isLive ? '● Live' : 'Upcoming'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-[10px] text-gray-450 mb-2">
+                      <MapPin className="w-3 h-3 text-indigo-400/80" />
+                      <span className="truncate">{event.room}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-900/60 text-[9px] text-gray-500">
+                      <div className="flex items-center gap-1 font-semibold uppercase tracking-wider text-gray-555">
+                        <IconComp className="w-2.5 h-2.5" />
+                        <span>{event.category}</span>
+                      </div>
+                      <span>{event.time}</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center p-6 text-center select-none">
+              <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-3.5 text-gray-500 shadow-md">
+                <Compass className="w-6 h-6 animate-pulse" style={{ animationDuration: '3s' }} />
+              </div>
+              <p className="text-xs font-bold text-slate-350 uppercase tracking-wider">No Activities Found</p>
+              <p className="text-[10px] text-gray-500 mt-1 max-w-[200px] leading-relaxed">
+                We couldn't find any activities matching your filters. Try adjusting search or create a new event.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Interactive Leaflet Map Panel */}
+      <div className={`flex-1 bg-[#080b11] border border-slate-900 rounded-2xl overflow-hidden shadow-2xl relative h-full dark-map
+        ${mobileView === 'map' ? 'block' : 'hidden md:block'}`}>
+        
+        {/* Map Loading Spinner Overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-[#06090f]/75 backdrop-blur-[2px] z-30 flex flex-col items-center justify-center gap-3 select-none">
+            <div className="relative flex items-center justify-center w-12 h-12">
+              <div className="absolute inline-flex h-full w-full rounded-full bg-indigo-500/20 animate-ping" />
+              <div className="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-400 rounded-full animate-spin" />
+            </div>
+            <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest animate-pulse">
+              Syncing Campus Map...
+            </span>
+          </div>
+        )}
+
+        {/* Floating Add Event Button overlaying map pane */}
+        <button
+          onClick={handleOpenModal}
+          title="Create New Activity"
+          className="absolute bottom-16 right-3.5 z-20 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/20 flex items-center justify-center border border-indigo-400/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+
+        
+        <MapContainer 
+          center={VIT_AP_CENTER} 
+          zoom={16} 
+          minZoom={15}
+          maxZoom={19}
+          maxBounds={VIT_AP_BOUNDS}
+          maxBoundsViscosity={1.0}
+          zoomControl={false} // Disable standard top-left zoom controls for bottom-right style
+          className="w-full h-full z-10"
+        >
+          {/* Map Panning Controller */}
+          <MapController center={mapCenter} zoom={mapZoom} />
+
+          {/* Click Listener to Select Exact Coordinates */}
+          <MapClickSelector onMapClick={handleMapClick} />
+
+          {/* OpenStreetMap TileLayer with Dark theme applied via CSS filters */}
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+          />
+
+          {/* Zoom Control at the Bottom Right */}
+          <ZoomControl position="bottomright" />
+
+          {/* Draft Marker for Location Selection Placement */}
+          {isModalOpen && tempCoords && (
+            <Marker 
+              position={tempCoords} 
+              icon={getCachedCustomIcon('indigo', true)}
+            >
+              <Popup closeButton={false}>
+                <div className="p-3 bg-[#0b0f19] border border-slate-900/60 rounded-xl text-center text-indigo-405 font-bold text-[10px] font-sans min-w-[170px]">
+                  📍 Placing New Activity Here
+                </div>
+              </Popup>
+            </Marker>
+          )}
+
+          {/* Event Markers */}
+          {events.map((event) => (
+            <Marker
+              key={event.id}
+              position={event.coordinates}
+              icon={getCachedCustomIcon(event.color, event.isLive)}
+              eventHandlers={{
+                click: () => {
+                  setSelectedEvent(event);
+                  setMapCenter(event.coordinates);
+                },
+              }}
+            >
+              <Popup closeButton={false}>
+                <ActivityPopup 
+                  event={event} 
+                  currentUserId={currentUserId} 
+                  joiningId={joiningId} 
+                  onJoin={handleJoinActivity} 
+                />
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+
+        {/* Floating Instruction Overlay (Minimalist Linear style) */}
+        <div className="absolute top-4 left-4 z-20 pointer-events-none hidden sm:flex items-center gap-2 bg-[#06090f]/90 border border-slate-850/80 px-3 py-2 rounded-xl backdrop-blur-md shadow-lg">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+            Live Campus Network Feed Active
+          </span>
+        </div>
+      </div>
+    </div>
+
+      {/* Modern Activity Creation Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0b0f19] border border-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Top gradient accent line */}
+            <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+            
+            <form onSubmit={handleCreateActivity} className="p-6 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-900/60">
+                <div className="text-left">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create Campus Activity</h3>
+                  <p className="text-[10px] text-gray-550 mt-0.5">Broadcast a new active hub on the live network.</p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-slate-900 text-gray-500 hover:text-white transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {/* Form Fields */}
+              <div className="space-y-3.5 text-left text-xs">
+                {/* Title */}
+                <div className="space-y-1">
+                  <label htmlFor="activityTitle" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Activity Title</label>
+                  <input
+                    id="activityTitle"
+                    type="text"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="e.g. AI Prompt Battle"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Location / Room */}
+                <div className="space-y-1">
+                  <label htmlFor="activityLocation" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Location / Room</label>
+                  <input
+                    id="activityLocation"
+                    type="text"
+                    disabled={isSubmitting}
+                    placeholder="e.g. SRK Block, Room 204 (default: Campus Commons)"
+                    value={room}
+                    onChange={(e) => setRoom(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1">
+                  <label htmlFor="activityDescription" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Description</label>
+                  <textarea
+                    id="activityDescription"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Describe what is happening, rules, and details..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    className="w-full p-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Visual Map Click Helper Tip */}
+                <div className="p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-2 text-[10px] text-indigo-300 leading-normal text-left">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-indigo-400 mt-0.5" />
+                  <span>
+                    <strong>Exact Location:</strong> You can click anywhere on the map directly to adjust the pin placement before clicking Create.
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="activityCategory" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Category</label>
+                  <select
+                    id="activityCategory"
+                    value={category}
+                    disabled={isSubmitting}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full h-9 px-2 rounded-lg bg-[#06090f] border border-slate-900 text-slate-350 focus:outline-none focus:border-indigo-500/80 transition-all font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="Study">Study</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Food">Food</option>
+                    <option value="Tech">Tech</option>
+                    <option value="Music">Music</option>
+                    <option value="Gaming">Gaming</option>
+                  </select>
+                </div>
+
+                {/* Grid for Start & End Time */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label htmlFor="activityStartTime" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Start Time</label>
+                    <input
+                      id="activityStartTime"
+                      type="time"
+                      required
+                      disabled={isSubmitting}
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label htmlFor="activityEndTime" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">End Time</label>
+                    <input
+                      id="activityEndTime"
+                      type="time"
+                      required
+                      disabled={isSubmitting}
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                {/* Is Live checkbox */}
+                <div className="flex items-center gap-2.5 pt-2 select-none">
+                  <input
+                    type="checkbox"
+                    id="isLiveCheckbox"
+                    disabled={isSubmitting}
+                    checked={isLive}
+                    onChange={(e) => setIsLive(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-900 bg-[#06090f] text-indigo-500 focus:ring-indigo-500/30 cursor-pointer accent-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <label htmlFor="isLiveCheckbox" className="text-gray-400 font-semibold cursor-pointer text-[11px] disabled:opacity-50">
+                    Mark as active live activity (pulsing marker ring)
+                  </label>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-900/60">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 h-9 rounded-lg bg-slate-950/40 border border-slate-900 text-gray-500 hover:text-white transition-all text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 h-9 rounded-lg bg-gradient-to-tr from-indigo-500 via-indigo-650 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/15 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    'Create'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification Overlay */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 bg-[#0b0f19] border px-4 py-3 rounded-xl shadow-2xl text-xs font-bold font-sans
+              ${toast.type === 'success' ? 'border-emerald-500/30 text-emerald-450' : 'border-rose-500/30 text-rose-450'}`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+            )}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default CampusMap;
