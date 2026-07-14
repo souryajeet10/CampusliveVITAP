@@ -16,7 +16,17 @@ Built for the **VIT-AP Hackathon 2026** 🚀
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite)
 
 </div>
+<div align="center">
 
+# 🗺️ CampusLive
+
+### Building the Social Layer of Every Campus
+
+### 🏆 Built for the VIT-AP Freshers Hackathon 2026
+
+*"Imagine never missing what's happening on campus again."*
+
+</div>
 ---
 
 # 🌍 About
