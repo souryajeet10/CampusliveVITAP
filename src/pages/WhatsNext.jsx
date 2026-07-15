@@ -220,12 +220,30 @@ const WhatsNext = () => {
           </h1>
         </motion.div>
 
-        {/* 🌟 Section 1: Vision Statement */}
-        <motion.section variants={itemVariants} className="p-6 md:p-8 rounded-2xl bg-gradient-to-tr from-indigo-950/20 to-slate-900/30 border border-slate-900 shadow-xl backdrop-blur-md">
-          <h2 className="text-xs font-bold text-gray-550 uppercase tracking-widest mb-3">CampusLive Vision</h2>
-          <p className="text-base md:text-lg text-slate-200 leading-relaxed font-medium">
-            &ldquo;CampusLive aims to become the central hub for every campus, making discovering events, finding communities, and connecting with students effortless.&rdquo;
-          </p>
+        {/* 🌟 Section 1: Vision & Manifesto */}
+        <motion.section variants={itemVariants} className="p-6 md:p-8 rounded-2xl bg-gradient-to-tr from-indigo-950/20 to-slate-900/30 border border-slate-900 shadow-xl backdrop-blur-md space-y-4">
+          <div>
+            <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest">CampusLive Vision &amp; Manifesto</span>
+            <h2 className="text-xl md:text-2xl font-black text-white mt-1">Building the Social Layer of Every Campus</h2>
+          </div>
+          
+          <div className="space-y-3 text-xs md:text-sm text-slate-350 leading-relaxed font-medium">
+            <p className="text-slate-200 text-sm md:text-base leading-relaxed font-semibold">
+              &ldquo;CampusLive @VITAP aims to make campus life more connected by helping students discover events, join communities, and stay informed about what&apos;s happening across the VIT-AP campus in real time.&rdquo;
+            </p>
+            
+            <div className="h-px bg-slate-900/80 my-3" />
+            
+            <p>
+              CampusLive believes campus life shouldn&apos;t be fragmented across WhatsApp groups, Instagram stories, and notice boards.
+            </p>
+            <p>
+              Our mission is to bring every activity, opportunity, and community into one beautiful platform where students can instantly discover what&apos;s happening around them.
+            </p>
+            <p className="text-indigo-400 font-bold pt-1">
+              We believe every student deserves to feel connected.
+            </p>
+          </div>
         </motion.section>
 
         {/* 🚀 Section 2: Coming Soon Roadmap Cards */}
@@ -275,27 +293,7 @@ const WhatsNext = () => {
           </div>
         </motion.section>
 
-        {/* 📜 Section 3: CampusLive Manifesto */}
-        <motion.section variants={itemVariants} className="p-6 md:p-10 rounded-2xl bg-gradient-to-tr from-slate-950 to-[#080b11] border border-slate-900 relative overflow-hidden shadow-2xl">
-          <div className="absolute right-0 top-0 w-48 h-48 bg-indigo-500/5 rounded-full filter blur-3xl pointer-events-none" />
-          <div className="space-y-4 max-w-3xl">
-            <h2 className="text-xs font-bold text-indigo-400 uppercase tracking-widest">CampusLive Manifesto</h2>
-            <h3 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
-              Building the Social Layer of Every Campus
-            </h3>
-            <div className="space-y-3.5 text-xs md:text-sm text-gray-400 leading-relaxed font-medium">
-              <p>
-                CampusLive believes campus life shouldn&apos;t be fragmented across WhatsApp groups, Instagram stories and notice boards.
-              </p>
-              <p>
-                Our mission is to bring every activity, opportunity and community into one beautiful platform where students can instantly discover what&apos;s happening around them.
-              </p>
-              <p className="text-indigo-400 font-bold">
-                We believe every student deserves to feel connected.
-              </p>
-            </div>
-          </div>
-        </motion.section>
+
 
         {/* 🎯 Section 4: Product Principles */}
         <motion.section variants={itemVariants} className="space-y-6">

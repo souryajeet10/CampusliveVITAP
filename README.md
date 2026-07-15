@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🗺️ CampusLive
+# 🗺️ CampusLive@VITAP
 
 ### The Social Layer of Every Campus
 
@@ -308,29 +308,47 @@ Suggested screenshots
 
 ---
 
-# 🛣️ Roadmap
+# 🛣️ Product Roadmap
 
-- Indoor Navigation
-- AI Event Recommendations
-- Club Management
-- Comments & Discussions
-- Event Sharing
-- Push Notifications
-- Attendance Analytics
-- Multi-Campus Support
-- Native Mobile App
+- 🗺️ **Improved Campus Map** *(In Progress)*  
+  Building labels, indoor navigation, heatmaps, and smarter search.
+
+- 🏛️ **Club Communities** *(Planned)*  
+  Dedicated club pages, announcements, and event calendars.
+
+- 📅 **Smart Calendar** *(Planned)*  
+  Personal activity schedule with reminders and calendar sync.
+
+- 📱 **Mobile App** *(Planned)*  
+  Native Android & iOS app with faster access and notifications.
+
+- 🔔 **Push Notifications** *(Planned)*  
+  Real-time alerts for nearby events, reminders, and Lost & Found.
+
+- 💬 **Event Discussions** *(Planned)*  
+  Activity-specific chats, Q&A, and organizer announcements.
+
+- 🌍 **Multi-Campus Support** *(Future)*  
+  Expand CampusLive to support universities beyond VIT-AP.
 
 ---
 
 # 🌍 Vision
 
-CampusLive aims to become the digital layer for university campuses, enabling students to discover events, connect with communities, and experience campus life in real time.
+CampusLive aims to become the digital layer of every university campus.
 
+Our vision is to replace fragmented communication across WhatsApp groups, notice boards, and multiple platforms with a single real-time campus experience.
+
+Students should be able to instantly discover activities, join communities, find lost items, and explore everything happening around campus from one interactive map.
+
+CampusLive is designed to be campus-agnostic, allowing any university to adopt it by configuring its campus map, buildings, and communities while keeping the same core platform.
+
+The long-term goal is to build a connected ecosystem where every university has its own CampusLive instance, creating smarter, more engaging, and more connected campuses.
 ---
 
 # 🚀 Live Demo
 
-👉 **https://YOUR-VERCEL-URL.vercel.app**
+👉 **https://campuslive-vitap.vercel.app/**
 
 ---
 
@@ -346,6 +364,6 @@ GitHub: https://github.com/souryajeet10
 
 ### ⭐ If you like this project, consider giving it a star!
 
-Made with ❤️ using React, Firebase, Tailwind CSS and Vite.
+Made using React, Firebase, Tailwind CSS and Vite.
 
 </div>
