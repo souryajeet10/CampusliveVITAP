@@ -9,7 +9,8 @@ import {
   query, 
   orderBy,
   serverTimestamp,
-  arrayUnion
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 
@@ -121,6 +122,23 @@ export const joinActivity = async (activityId, userId) => {
     });
   } catch (error) {
     console.error(`Error joining activity ${activityId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Removes a user ID from the participants array of an activity.
+ * @param {string} activityId 
+ * @param {string} userId 
+ */
+export const leaveActivity = async (activityId, userId) => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, activityId);
+    await updateDoc(docRef, {
+      participants: arrayRemove(userId)
+    });
+  } catch (error) {
+    console.error(`Error leaving activity ${activityId}:`, error);
     throw error;
   }
 };

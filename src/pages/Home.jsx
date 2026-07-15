@@ -28,9 +28,11 @@ import {
   accentGradients, 
   mockEvents 
 } from '../utils/constants';
-import { subscribeActivities } from '../services/activityService';
+import { subscribeActivities, joinActivity, deleteActivity } from '../services/activityService';
 import { subscribeActivePins } from '../services/lostFoundService';
 import { getRelativeTime } from '../utils/time';
+import EventDetailDrawer from '../components/EventDetailDrawer';
+import { useAuth } from '../hooks/useAuth';
 
 // Helper to convert 24h format "14:00" to 12h format "2:00 PM"
 const formatTime12h = (timeStr) => {
@@ -90,13 +92,65 @@ const getCachedHomepageIcon = (color, isLive) => {
 };
 
 
+const AnimatedCounter = ({ value }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    const startVal = displayValue;
+    const endVal = Number(value) || 0;
+    const duration = 500; // ms
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      const currentVal = Math.floor(progress * (endVal - startVal) + startVal);
+      setDisplayValue(currentVal);
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+
+    window.requestAnimationFrame(step);
+  }, [value]);
+
+  return <span>{displayValue}</span>;
+};
+
+const getBuildingName = (coords) => {
+  if (!coords) return 'Campus Commons';
+  const [lat, lng] = coords;
+  if (lat > 16.5065 && lat < 16.5075 && lng > 80.5230 && lng < 80.5245) {
+    return 'SRK Block';
+  }
+  if (lat > 16.5055 && lat < 16.5065 && lng > 80.5220 && lng < 80.5235) {
+    return 'Dr. S. Radhakrishnan Block';
+  }
+  if (lat > 16.5075 && lat < 16.5085 && lng > 80.5240 && lng < 80.5255) {
+    return 'APJ Abdul Kalam Block';
+  }
+  return 'Campus Commons';
+};
+
 const Home = () => {
+  const { currentUser } = useAuth();
   const categoryFilters = ['All', 'Study', 'Sports', 'Food', 'Tech', 'Music', 'Gaming'];
   const [events, setEvents] = useState([]);
   const [lfPins, setLfPins] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [now, setNow] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Tick timer for countdown calculations
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -128,11 +182,18 @@ const Home = () => {
         time: (act.startTime && act.endTime)
           ? `${formatTime12h(act.startTime)} - ${formatTime12h(act.endTime)}`
           : (act.duration || 'Ends Soon'),
+        startTime: act.startTime || '',
+        endTime: act.endTime || '',
+        date: act.date || '',
+        createdBy: act.createdBy || '',
+        creatorName: act.creatorName || '',
+        createdAt: act.createdAt || null,
         participants: act.participants || [],
         participantCount: (act.participants || []).length
       }));
 
       setEvents(mapped);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -146,6 +207,16 @@ const Home = () => {
     return () => unsubscribe();
   }, []);
 
+  const handleJoinActivity = async (e, activityId) => {
+    e.stopPropagation();
+    if (!currentUser) return;
+    try {
+      await joinActivity(activityId, currentUser.id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Filter events based on active category & debounced search query
   const filteredEvents = events.filter(event => {
     const matchesFilter = activeFilter === 'All' || event.category === activeFilter;
@@ -158,15 +229,52 @@ const Home = () => {
     return matchesFilter && matchesSearch;
   });
 
-  // Derived stats for Campus Pulse
-  const liveCount = events.filter(e => e.isLive).length;
-  const totalParticipants = events.reduce((sum, e) => sum + e.participantCount, 0);
-  const avgAttendance = events.length > 0 ? Math.round(totalParticipants / events.length) : 0;
+  // Helper to format local date YYYY-MM-DD
+  const getLocalDateString = (d) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
-  // Trending: top 5 events by participant count
-  const trendingEvents = [...events]
-    .sort((a, b) => b.participantCount - a.participantCount)
-    .slice(0, 5);
+  // Derived stats for Campus Pulse
+  const todayStr = getLocalDateString(now);
+  const liveCount = events.filter(e => e.isLive).length;
+  const eventsTodayCount = events.filter(e => e.date === todayStr).length;
+  const totalParticipantsToday = events
+    .filter(e => e.date === todayStr)
+    .reduce((sum, e) => sum + e.participantCount, 0);
+  const trendingEvent = events.length > 0
+    ? [...events].sort((a, b) => b.participantCount - a.participantCount)[0]
+    : null;
+
+  // Starting Soon: next 60 minutes
+  const startingSoonEvents = events
+    .map(event => {
+      if (!event.date || !event.startTime) return null;
+      const [year, month, day] = event.date.split('-').map(Number);
+      const [hour, minute] = event.startTime.split(':').map(Number);
+      const startDateTime = new Date(year, month - 1, day, hour, minute);
+      
+      const diffMs = startDateTime - now;
+      const diffMins = Math.round(diffMs / 60000);
+      
+      return {
+        ...event,
+        startDateTime,
+        diffMins
+      };
+    })
+    .filter(event => event !== null && event.diffMins >= 0 && event.diffMins <= 60)
+    .sort((a, b) => a.diffMins - b.diffMins);
+
+  // Recently Added: newest created first
+  const recentlyAddedEvents = [...events]
+    .sort((a, b) => {
+      const aTime = a.createdAt?.seconds || 0;
+      const bTime = b.createdAt?.seconds || 0;
+      return bTime - aTime;
+    });
 
 
   return (
@@ -234,32 +342,10 @@ const Home = () => {
                   key={event.id}
                   position={event.coordinates}
                   icon={getCachedHomepageIcon(event.color, event.isLive)}
-                >
-                  <Popup closeButton={false}>
-                    <div className="p-3 bg-[#0b0f19] border border-slate-900/20 text-slate-350 min-w-[210px] font-sans">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
-                          ${event.isLive 
-                            ? 'bg-rose-500/10 text-rose-450 border-rose-500/20' 
-                            : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                          }`}
-                        >
-                          {event.isLive ? '● Live Now' : 'Upcoming'}
-                        </span>
-                        <span className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">{event.category}</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-white mb-0.5">{event.name}</h4>
-                      <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-indigo-400 shrink-0" />
-                        {event.room}
-                      </p>
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-900/60 text-[9px] text-gray-500 font-semibold">
-                        <span>{event.time}</span>
-                        <span>{event.participantCount} joined</span>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
+                  eventHandlers={{
+                    click: () => setSelectedEventId(event.id)
+                  }}
+                />
               ))}
             </MapContainer>
 
@@ -273,60 +359,133 @@ const Home = () => {
             </NavLink>
           </div>
 
-          {/* Feature Cards Row 1: Trending + Nearby */}
+          {/* Feature Cards Row 1: Starting Soon + Recently Added */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-            {/* Card 1 — 🔥 Trending Now */}
+            {/* Card 1 — 🕒 Starting Soon */}
             <div className="p-4 rounded-xl bg-slate-900/30 border border-slate-900 hover:border-slate-800 transition-all duration-300">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/15">
-                  <Flame className="w-3.5 h-3.5 text-orange-400" />
+                  <Clock className="w-3.5 h-3.5 text-orange-400" />
                 </div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Trending Now</h4>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Starting Soon</h4>
               </div>
-              <div className="space-y-2">
-                {trendingEvents.length > 0 ? trendingEvents.map((event, i) => (
-                  <div key={event.id} className="flex items-center gap-2.5 py-1.5 group">
-                    <span className="text-[10px] font-bold text-gray-600 w-4 text-right">{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-slate-300 truncate group-hover:text-white transition-colors">{event.name}</p>
-                      <p className="text-[9px] text-gray-600">{event.room}</p>
+              <div className="space-y-3">
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="p-3 rounded-lg border border-slate-900 bg-slate-950/20 space-y-2 animate-pulse">
+                      <div className="flex justify-between items-center">
+                        <div className="w-24 h-3.5 bg-slate-800 rounded" />
+                        <div className="w-12 h-3 bg-slate-850 rounded" />
+                      </div>
+                      <div className="w-3/4 h-3 bg-slate-850 rounded" />
+                      <div className="w-1/2 h-3 bg-slate-850 rounded" />
                     </div>
-                    <div className="flex items-center gap-1 text-[9px] text-gray-500 shrink-0">
-                      <Users className="w-2.5 h-2.5" />
-                      <span className="font-bold">{event.participantCount}</span>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-[10px] text-gray-600 py-4 text-center">No live activities yet. Create one!</p>
+                  ))
+                ) : startingSoonEvents.length > 0 ? (
+                  startingSoonEvents.map((event) => {
+                    const hasJoined = event.participants?.includes(currentUser?.id);
+                    const building = getBuildingName(event.coordinates);
+                    const countdownStr = event.diffMins === 0 
+                      ? 'Starting now' 
+                      : event.diffMins === 1 
+                        ? 'Starts in 1 minute' 
+                        : `Starts in ${event.diffMins} minutes`;
+
+                    return (
+                      <div 
+                        key={event.id} 
+                        className="p-3 rounded-lg border border-slate-905 bg-slate-950/10 hover:border-slate-800 transition-all cursor-pointer group flex justify-between items-center gap-3 text-left"
+                        onClick={() => setSelectedEventId(event.id)}
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-bold text-slate-205 truncate group-hover:text-white transition-colors">{event.name}</span>
+                            <span className="text-[8px] font-extrabold uppercase tracking-wider px-1 bg-slate-900 border border-slate-800 text-indigo-400 rounded">
+                              {event.category}
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-gray-500 truncate">{building} • {event.room}</p>
+                          <div className="flex items-center gap-2 text-[9px] font-bold">
+                            <span className="text-amber-400/90">{countdownStr}</span>
+                            <span className="text-gray-600">•</span>
+                            <span className="text-gray-400">{event.participantCount} joined</span>
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={(e) => handleJoinActivity(e, event.id)}
+                          disabled={hasJoined}
+                          className={`h-6.5 px-3.5 rounded-lg text-[9px] font-extrabold transition-all border shrink-0
+                            ${hasJoined 
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 cursor-default' 
+                              : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/25 active:scale-95 cursor-pointer'
+                            }`}
+                        >
+                          {hasJoined ? 'Joined' : 'Join'}
+                        </button>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-[10px] text-gray-600 py-6 text-center">No activities starting soon.</p>
                 )}
               </div>
             </div>
 
-            {/* Card 2 — 🎯 Nearby Activities */}
+            {/* Card 2 — 🆕 Recently Added */}
             <div className="p-4 rounded-xl bg-slate-900/30 border border-slate-900 hover:border-slate-800 transition-all duration-300">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/15">
-                  <Target className="w-3.5 h-3.5 text-blue-400" />
+                <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/15">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                 </div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Nearby Activities</h4>
-                <span className="ml-auto text-[8px] text-gray-600 font-bold uppercase tracking-wider">within 500m</span>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Recently Added</h4>
               </div>
-              <div className="space-y-2">
-                {events.slice(0, 4).length > 0 ? events.slice(0, 4).map((event) => (
-                  <div key={event.id} className="flex items-center gap-2.5 py-1.5 group">
-                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${event.isLive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-slate-300 truncate group-hover:text-white transition-colors">{event.name}</p>
-                      <p className="text-[9px] text-gray-600">{event.category} • {event.time}</p>
+              <div className="space-y-3">
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="p-3 rounded-lg border border-slate-900 bg-slate-950/20 space-y-2 animate-pulse">
+                      <div className="flex justify-between items-center">
+                        <div className="w-24 h-3.5 bg-slate-800 rounded" />
+                        <div className="w-12 h-3 bg-slate-855 rounded" />
+                      </div>
+                      <div className="w-3/4 h-3 bg-slate-850 rounded" />
                     </div>
-                    <span className="text-[9px] text-indigo-400/80 font-bold shrink-0">~{Math.floor(Math.random() * 400 + 50)}m</span>
-                  </div>
-                )) : (
-                  <p className="text-[10px] text-gray-600 py-4 text-center">No nearby activities found.</p>
+                  ))
+                ) : recentlyAddedEvents.length > 0 ? (
+                  recentlyAddedEvents.slice(0, 4).map((event) => {
+                    const building = getBuildingName(event.coordinates);
+                    const creatorName = event.creatorName || (event.createdBy === currentUser?.id ? (currentUser?.name || 'You') : 'Aarav Sharma');
+                    const relativeTime = event.createdAt 
+                      ? getRelativeTime(event.createdAt.seconds * 1000) 
+                      : 'Just now';
+
+                    return (
+                      <div 
+                        key={event.id} 
+                        className="p-3 rounded-lg border border-slate-905 bg-slate-950/10 hover:border-slate-800 transition-all cursor-pointer group flex flex-col gap-1 text-left"
+                        onClick={() => setSelectedEventId(event.id)}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="text-[11px] font-bold text-slate-205 truncate group-hover:text-white transition-colors">{event.name}</p>
+                          <span className="text-[9px] text-gray-500 shrink-0">{relativeTime}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap text-[9px] text-gray-400 font-medium">
+                          <span className="text-indigo-400 font-bold">{creatorName}</span>
+                          <span className="text-gray-650">•</span>
+                          <span>{building}</span>
+                          <span className="text-gray-650">•</span>
+                          <span className="text-[8px] font-bold text-gray-450 uppercase tracking-wider">{event.category}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-[10px] text-gray-600 py-6 text-center">No recent activities.</p>
                 )}
               </div>
             </div>
+
           </div>
 
           {/* Feature Cards Row 2: Lost & Found */}
@@ -389,22 +548,52 @@ const Home = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
+              {/* Live Events */}
               <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-center">
-                <p className="text-xl font-bold text-white">{liveCount}</p>
-                <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Active Events</p>
+                <p className="text-xl font-bold text-emerald-450">
+                  <AnimatedCounter value={liveCount} />
+                </p>
+                <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">🟢 Live Events</p>
               </div>
+
+              {/* Events Today */}
               <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-center">
-                <p className="text-xl font-bold text-white">{totalParticipants}</p>
-                <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Students Online</p>
+                <p className="text-xl font-bold text-white">
+                  <AnimatedCounter value={eventsTodayCount} />
+                </p>
+                <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">📅 Events Today</p>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-center">
-                <p className="text-xl font-bold text-white">{events.length}</p>
-                <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Events Today</p>
+
+              {/* Total Participants Today */}
+              <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-center col-span-2">
+                <p className="text-xl font-bold text-indigo-400">
+                  <AnimatedCounter value={totalParticipantsToday} />
+                </p>
+                <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">👥 Total Participants Today</p>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-center">
-                <p className="text-xl font-bold text-white">{avgAttendance}</p>
-                <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Avg Attendance</p>
-              </div>
+
+              {/* Trending Activity */}
+              {trendingEvent ? (
+                <div 
+                  onClick={() => setSelectedEventId(trendingEvent.id)}
+                  className="p-3.5 rounded-xl bg-[#090d16]/60 border border-slate-900 hover:border-indigo-500/20 hover:bg-slate-900/20 transition-all cursor-pointer text-left col-span-2 group"
+                >
+                  <p className="text-[9px] text-orange-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span>🔥 Trending Activity</span>
+                  </p>
+                  <h5 className="text-xs font-bold text-slate-200 mt-1.5 truncate group-hover:text-indigo-400 transition-colors">
+                    {trendingEvent.name}
+                  </h5>
+                  <div className="flex justify-between items-center mt-1 text-[9px] text-gray-500">
+                    <span>{getBuildingName(trendingEvent.coordinates)}</span>
+                    <span className="font-bold text-gray-450">{trendingEvent.participantCount} joined</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-900 text-center col-span-2 text-gray-600 text-[10px]">
+                  No trending activity today.
+                </div>
+              )}
             </div>
           </div>
 
@@ -468,6 +657,13 @@ const Home = () => {
 
       </div>
 
+      <EventDetailDrawer
+        isOpen={!!selectedEventId}
+        onClose={() => setSelectedEventId(null)}
+        event={events.find(e => e.id === selectedEventId)}
+        currentUserId={currentUser?.id}
+        onDelete={deleteActivity}
+      />
     </div>
   );
 };

@@ -29,7 +29,9 @@ import {
   mockEvents 
 } from '../utils/constants';
 import { auth } from '../firebase/firebase';
-import { addActivity, subscribeActivities, joinActivity } from '../services/activityService';
+import { addActivity, subscribeActivities, joinActivity, deleteActivity } from '../services/activityService';
+import EventDetailDrawer from '../components/EventDetailDrawer';
+import CreateActivityModal from '../components/CreateActivityModal';
 
 
 // Helper to convert 24h format "14:00" to 12h format "2:00 PM"
@@ -242,24 +244,34 @@ const getCachedCustomIcon = (color, isLive) => {
   return customIconCache[cacheKey];
 };
 
+// Temporary marker icon for selection mode
+const tempMarkerIcon = L.divIcon({
+  className: '',
+  html: `
+    <div class="relative flex items-center justify-center w-10 h-10 animate-bounce">
+      <span class="absolute inline-flex h-full w-full rounded-full bg-indigo-400/30 animate-ping opacity-75"></span>
+      <div class="relative flex items-center justify-center w-7.5 h-7.5 rounded-full border border-indigo-400 bg-gradient-to-tr from-indigo-500 to-indigo-800 text-white shadow-xl">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+    </div>
+  `,
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+});
+
 const CampusMap = () => {
   const [events, setEvents] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMapSelectionMode, setIsMapSelectionMode] = useState(false);
   const [mobileView, setMobileView] = useState('map');
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [tempCoords, setTempCoords] = useState(null); // Selected placement coordinates
 
-  // Form State
-  const [title, setTitle] = useState('');
-  const [room, setRoom] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Tech');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [isLive, setIsLive] = useState(true);
-
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEventId, setSelectedEventId] = useState(null);
   const [mapCenter, setMapCenter] = useState(VIT_AP_CENTER);
   const [mapZoom, setMapZoom] = useState(16);
   const [searchQuery, setSearchQuery] = useState('');
@@ -371,58 +383,56 @@ const CampusMap = () => {
   }, [isModalOpen]);
 
 
-  const handleOpenModal = () => {
-    setTempCoords(mapCenter); // Default to current map view center
-    setIsModalOpen(true);
+  const handleStartMapSelection = () => {
+    setIsMapSelectionMode(true);
+    setSelectedEventId(null);
   };
 
   const handleMapClick = (latlng) => {
-    const coords = [latlng.lat, latlng.lng];
-    setTempCoords(coords);
-    setIsModalOpen(true);
+    if (isMapSelectionMode) {
+      const coords = [latlng.lat, latlng.lng];
+      setTempCoords(coords);
+      setMapCenter(coords);
+      setMapZoom(17);
+      setIsMapSelectionMode(false);
+      setIsModalOpen(true);
+    }
   };
 
-  const handleCreateActivity = async (e) => {
-    e.preventDefault();
-    if (!title.trim() || !description.trim() || !startTime.trim() || !endTime.trim()) {
-      showToast('Please fill out all required fields.', 'error');
-      return;
-    }
+  const handleChangeLocation = () => {
+    setIsModalOpen(false);
+    setIsMapSelectionMode(true);
+  };
 
+  const handleCreateActivity = async (activityData) => {
     setIsSubmitting(true);
     try {
-      const coordinates = tempCoords || mapCenter;
-
-      const activityData = {
-        name: title,
-        room: room || 'Campus Commons',
-        category,
-        latitude: coordinates[0],
-        longitude: coordinates[1],
-        description,
-        isLive,
-        startTime,
-        endTime,
-        createdBy: currentUserId
+      const finalData = {
+        name: activityData.name,
+        room: activityData.room,
+        category: activityData.category,
+        latitude: activityData.coordinates[0],
+        longitude: activityData.coordinates[1],
+        description: activityData.description,
+        isLive: true,
+        startTime: activityData.startTime,
+        endTime: activityData.endTime,
+        date: activityData.date,
+        maxParticipants: activityData.maxParticipants,
+        color: activityData.color,
+        createdBy: currentUserId,
+        creatorName: currentUser?.name || 'Aarav Sharma',
+        participants: [currentUserId]
       };
 
-      await addActivity(activityData);
+      await addActivity(finalData);
       showToast('Activity created successfully!', 'success');
 
-      // Reset Form State
-      setTitle('');
-      setRoom('');
-      setDescription('');
-      setCategory('Tech');
-      setStartTime('');
-      setEndTime('');
-      setIsLive(true);
       setTempCoords(null);
-      
       setIsModalOpen(false);
 
       // Focus and close map view to marker
-      setMapCenter(coordinates);
+      setMapCenter(activityData.coordinates);
       setMapZoom(18);
     } catch (err) {
       console.error(err);
@@ -434,13 +444,13 @@ const CampusMap = () => {
 
 
   const handleSelectEvent = (event) => {
-    setSelectedEvent(event);
+    setSelectedEventId(event.id);
     setMapCenter(event.coordinates);
     setMapZoom(18); // Zoom in closer on selection
   };
 
   const handleRecenter = () => {
-    setSelectedEvent(null);
+    setSelectedEventId(null);
     setMapCenter(VIT_AP_CENTER);
     setMapZoom(16);
   };
@@ -563,7 +573,7 @@ const CampusMap = () => {
             <AnimatePresence mode="popLayout">
               {filteredEvents.map((event) => {
                 const IconComp = iconMapping[event.iconName] || Sparkles;
-                const isSelected = selectedEvent?.id === event.id;
+                const isSelected = selectedEventId === event.id;
                 
                 return (
                   <motion.div 
@@ -642,13 +652,30 @@ const CampusMap = () => {
         )}
 
         {/* Floating Add Event Button overlaying map pane */}
-        <button
-          onClick={handleOpenModal}
-          title="Create New Activity"
-          className="absolute bottom-16 right-3.5 z-20 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/20 flex items-center justify-center border border-indigo-400/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
+        {!isMapSelectionMode && (
+          <button
+            onClick={handleStartMapSelection}
+            title="Create New Activity"
+            className="absolute bottom-16 right-3.5 z-20 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/20 flex items-center justify-center border border-indigo-400/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Map Selection Mode Overlay Instructions */}
+        {isMapSelectionMode && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-[#0b0f19]/90 border border-indigo-500/25 px-4 py-2.5 rounded-xl backdrop-blur-md shadow-2xl animate-in slide-in-from-top-4 duration-200">
+            <span className="text-[11px] font-black text-slate-200">
+              📍 Tap anywhere on the map to choose your activity location.
+            </span>
+            <button
+              onClick={() => setIsMapSelectionMode(false)}
+              className="px-2 py-1 rounded bg-slate-950/60 hover:bg-slate-900 border border-slate-800 text-[10px] font-bold text-gray-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         
         <MapContainer 
@@ -677,18 +704,12 @@ const CampusMap = () => {
           {/* Zoom Control at the Bottom Right */}
           <ZoomControl position="bottomright" />
 
-          {/* Draft Marker for Location Selection Placement */}
-          {isModalOpen && tempCoords && (
+          {/* Temporary animated placement marker */}
+          {tempCoords && (
             <Marker 
               position={tempCoords} 
-              icon={getCachedCustomIcon('indigo', true)}
-            >
-              <Popup closeButton={false}>
-                <div className="p-3 bg-[#0b0f19] border border-slate-900/60 rounded-xl text-center text-indigo-405 font-bold text-[10px] font-sans min-w-[170px]">
-                  📍 Placing New Activity Here
-                </div>
-              </Popup>
-            </Marker>
+              icon={tempMarkerIcon}
+            />
           )}
 
           {/* Event Markers */}
@@ -699,20 +720,11 @@ const CampusMap = () => {
               icon={getCachedCustomIcon(event.color, event.isLive)}
               eventHandlers={{
                 click: () => {
-                  setSelectedEvent(event);
+                  setSelectedEventId(event.id);
                   setMapCenter(event.coordinates);
                 },
               }}
-            >
-              <Popup closeButton={false}>
-                <ActivityPopup 
-                  event={event} 
-                  currentUserId={currentUserId} 
-                  joiningId={joiningId} 
-                  onJoin={handleJoinActivity} 
-                />
-              </Popup>
-            </Marker>
+            />
           ))}
         </MapContainer>
 
@@ -727,172 +739,14 @@ const CampusMap = () => {
     </div>
 
       {/* Modern Activity Creation Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0b0f19] border border-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Top gradient accent line */}
-            <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-            
-            <form onSubmit={handleCreateActivity} className="p-6 space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-900/60">
-                <div className="text-left">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create Campus Activity</h3>
-                  <p className="text-[10px] text-gray-550 mt-0.5">Broadcast a new active hub on the live network.</p>
-                </div>
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-slate-900 text-gray-500 hover:text-white transition-all cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              {/* Form Fields */}
-              <div className="space-y-3.5 text-left text-xs">
-                {/* Title */}
-                <div className="space-y-1">
-                  <label htmlFor="activityTitle" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Activity Title</label>
-                  <input
-                    id="activityTitle"
-                    type="text"
-                    required
-                    disabled={isSubmitting}
-                    placeholder="e.g. AI Prompt Battle"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Location / Room */}
-                <div className="space-y-1">
-                  <label htmlFor="activityLocation" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Location / Room</label>
-                  <input
-                    id="activityLocation"
-                    type="text"
-                    disabled={isSubmitting}
-                    placeholder="e.g. SRK Block, Room 204 (default: Campus Commons)"
-                    value={room}
-                    onChange={(e) => setRoom(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1">
-                  <label htmlFor="activityDescription" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Description</label>
-                  <textarea
-                    id="activityDescription"
-                    required
-                    disabled={isSubmitting}
-                    placeholder="Describe what is happening, rules, and details..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="w-full p-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Visual Map Click Helper Tip */}
-                <div className="p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-2 text-[10px] text-indigo-300 leading-normal text-left">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-indigo-400 mt-0.5" />
-                  <span>
-                    <strong>Exact Location:</strong> You can click anywhere on the map directly to adjust the pin placement before clicking Create.
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="activityCategory" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Category</label>
-                  <select
-                    id="activityCategory"
-                    value={category}
-                    disabled={isSubmitting}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-9 px-2 rounded-lg bg-[#06090f] border border-slate-900 text-slate-350 focus:outline-none focus:border-indigo-500/80 transition-all font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="Study">Study</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Food">Food</option>
-                    <option value="Tech">Tech</option>
-                    <option value="Music">Music</option>
-                    <option value="Gaming">Gaming</option>
-                  </select>
-                </div>
-
-                {/* Grid for Start & End Time */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label htmlFor="activityStartTime" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">Start Time</label>
-                    <input
-                      id="activityStartTime"
-                      type="time"
-                      required
-                      disabled={isSubmitting}
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label htmlFor="activityEndTime" className="block text-gray-450 font-bold uppercase tracking-wider text-[9px]">End Time</label>
-                    <input
-                      id="activityEndTime"
-                      type="time"
-                      required
-                      disabled={isSubmitting}
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                {/* Is Live checkbox */}
-                <div className="flex items-center gap-2.5 pt-2 select-none">
-                  <input
-                    type="checkbox"
-                    id="isLiveCheckbox"
-                    disabled={isSubmitting}
-                    checked={isLive}
-                    onChange={(e) => setIsLive(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-900 bg-[#06090f] text-indigo-500 focus:ring-indigo-500/30 cursor-pointer accent-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <label htmlFor="isLiveCheckbox" className="text-gray-400 font-semibold cursor-pointer text-[11px] disabled:opacity-50">
-                    Mark as active live activity (pulsing marker ring)
-                  </label>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-900/60">
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 h-9 rounded-lg bg-slate-950/40 border border-slate-900 text-gray-500 hover:text-white transition-all text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 h-9 rounded-lg bg-gradient-to-tr from-indigo-500 via-indigo-650 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/15 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    'Create'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateActivityModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tempCoords={tempCoords}
+        onSubmit={handleCreateActivity}
+        isSubmitting={isSubmitting}
+        onChangeLocation={handleChangeLocation}
+      />
 
       {/* Toast Notification Overlay */}
       <AnimatePresence>
@@ -913,6 +767,14 @@ const CampusMap = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <EventDetailDrawer
+        isOpen={!!selectedEventId}
+        onClose={() => setSelectedEventId(null)}
+        event={events.find(e => e.id === selectedEventId)}
+        currentUserId={currentUserId}
+        onDelete={deleteActivity}
+      />
     </div>
   );
 };

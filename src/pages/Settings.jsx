@@ -200,6 +200,33 @@ Save this credentials card. You will need your unique Campus ID to access your p
             </button>
           </div>
 
+          {/* About Section */}
+          <div className="p-6 rounded-2xl bg-[#080b11] border border-slate-900 shadow-xl space-y-4">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-900/60">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>About CampusLive</span>
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-xs font-medium">
+              <div className="space-y-1">
+                <p className="text-[9px] text-gray-550 uppercase tracking-wider">App Name</p>
+                <p className="text-slate-200 font-bold">CampusLive</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-gray-550 uppercase tracking-wider">Version</p>
+                <p className="text-slate-200 font-bold">v0.9.0 "Public Preview"</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-gray-550 uppercase tracking-wider">Environment</p>
+                <p className="text-slate-200 font-bold capitalize">{import.meta.env.MODE || 'production'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-gray-550 uppercase tracking-wider">Build Date</p>
+                <p className="text-slate-200 font-bold">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div>
