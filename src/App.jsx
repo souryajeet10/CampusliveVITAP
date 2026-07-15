@@ -12,6 +12,7 @@ const LostFound = lazy(() => import('./pages/LostFound'));
 const WhatsNext = lazy(() => import('./pages/WhatsNext'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Events = lazy(() => import('./pages/Events'));
 
 const APP_ENTER = {
   initial: { opacity: 0, y: 24 },
@@ -67,15 +68,7 @@ function AppContent() {
                     />
                     <Route path="map" element={<CampusMap />} />
                     <Route path="lost-found" element={<LostFound />} />
-                    <Route
-                      path="events"
-                      element={
-                        <div className="p-8 rounded-2xl bg-slate-900/50 border border-slate-850">
-                          <h2 className="text-2xl font-bold text-slate-100 mb-2">Events</h2>
-                          <p className="text-gray-400">Placeholder for upcoming event feeds and scheduler.</p>
-                        </div>
-                      }
-                    />
+                    <Route path="events" element={<Events />} />
                     <Route path="whats-next" element={<WhatsNext />} />
                     <Route path="settings" element={<Settings />} />
                   </Route>

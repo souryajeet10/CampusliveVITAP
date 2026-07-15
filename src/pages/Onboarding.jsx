@@ -118,7 +118,7 @@ const Onboarding = () => {
                   onClick={() => setMode('register')}
                   className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/15 transition-all cursor-pointer active:scale-98"
                 >
-                  <span>Create Account</span>
+                  <span>Create ID</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
 

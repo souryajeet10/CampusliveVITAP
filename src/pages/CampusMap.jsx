@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -263,9 +264,17 @@ const tempMarkerIcon = L.divIcon({
 });
 
 const CampusMap = () => {
+  const location = useLocation();
   const [events, setEvents] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMapSelectionMode, setIsMapSelectionMode] = useState(false);
+
+  useEffect(() => {
+    if (location.search.includes('select=true')) {
+      setIsMapSelectionMode(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location]);
   const [mobileView, setMobileView] = useState('map');
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
