@@ -10,6 +10,7 @@ import {
   ChevronRight, 
   Clock, 
   Star, 
+  ArrowRight,
   ArrowUpRight,
   TrendingUp,
   Sparkles,
@@ -375,10 +376,10 @@ const Home = () => {
             {/* Floating Go to Interactive Map Link */}
             <NavLink 
               to="/map" 
-              className="absolute bottom-5 right-5 h-10 px-4 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/15 border border-indigo-400/20 active:scale-95 transition-all z-20"
+              className="absolute bottom-5 left-5 h-10 px-4 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/15 border border-indigo-400/20 active:scale-95 transition-all z-20"
             >
-              <Plus className="w-4 h-4" />
               <span>Go to Interactive Map</span>
+              <ArrowRight className="w-4 h-4" />
             </NavLink>
           </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -154,6 +155,7 @@ const ItemListItem = memo(({ pin, onSelect }) => {
 ItemListItem.displayName = 'ItemListItem';
 
 const LostFound = () => {
+  const location = useLocation();
   const [filterType, setFilterType] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -187,6 +189,13 @@ const LostFound = () => {
 
   const { currentUser } = useAuth();
   const currentUserId = currentUser?.id || 'aarav_sharma_uid';
+
+  useEffect(() => {
+    if (location.search.includes('create=true')) {
+      setIsFormOpen(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location]);
 
   // Debounce search query
   useEffect(() => {
@@ -316,7 +325,7 @@ const LostFound = () => {
               : 'text-gray-500 border border-transparent'
             }`}
         >
-          <Plus className="w-3.5 h-3.5" />
+          <MapPin className="w-3.5 h-3.5" />
           <span>Interactive Map</span>
         </button>
         <button
@@ -328,7 +337,7 @@ const LostFound = () => {
             }`}
         >
           <Inbox className="w-3.5 h-3.5" />
-          <span>List Directory ({pins.length})</span>
+          <span>Item List ({pins.length})</span>
         </button>
       </div>
 
@@ -543,10 +552,11 @@ const LostFound = () => {
           {/* Floating Action Button (FAB) inside Map Workspace */}
           <button
             onClick={() => setIsFormOpen(true)}
-            className="absolute bottom-5 right-5 h-12 w-12 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/20 border border-indigo-400/20 active:scale-90 transition-all z-20 cursor-pointer"
-            title="Report Lost/Found Item"
+            className="absolute bottom-16 left-5 h-10 px-4 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white flex items-center gap-2 shadow-2xl shadow-indigo-600/20 border border-indigo-400/20 active:scale-95 transition-all z-20 cursor-pointer text-xs font-bold"
+            title="Report Lost or Found Item"
           >
-            <Plus className="w-6 h-6" />
+            <span>Report Lost or Found Item</span>
+            <Plus className="w-4 h-4 text-white" />
           </button>
         </div>
 

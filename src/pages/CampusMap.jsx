@@ -507,8 +507,8 @@ const CampusMap = () => {
               : 'text-gray-500 border border-transparent'
             }`}
         >
-          <Users className="w-3.5 h-3.5" />
-          <span>Directory List</span>
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Event List</span>
         </button>
       </div>
 
@@ -670,9 +670,10 @@ const CampusMap = () => {
           <button
             onClick={handleStartMapSelection}
             title="Create New Activity"
-            className="absolute bottom-16 right-3.5 z-20 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/20 flex items-center justify-center border border-indigo-400/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className="absolute bottom-16 left-3.5 z-20 h-10 px-4 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/20 flex items-center gap-2 border border-indigo-400/25 transition-all hover:scale-105 active:scale-95 cursor-pointer text-xs font-bold"
           >
-            <Plus className="w-5 h-5" />
+            <span>Create Event</span>
+            <Plus className="w-4 h-4 text-white" />
           </button>
         )}
 

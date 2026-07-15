@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
-import { Home, MapPin, Plus, Calendar, User } from 'lucide-react';
+import { Home, MapPin, Calendar, User } from 'lucide-react';
 
 const MainLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -56,16 +56,6 @@ const MainLayout = () => {
           <MapPin className="w-4.5 h-4.5" />
           <span className="text-[9px] font-bold">Map</span>
         </button>
-
-        {/* Center Big Plus Button */}
-        <div className="relative -top-3">
-          <button 
-            onClick={() => handleMobileTabClick('/settings')}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20 transition-all border border-indigo-400/25 active:scale-95"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-        </div>
 
         <button 
           onClick={() => handleMobileTabClick('/events')}
