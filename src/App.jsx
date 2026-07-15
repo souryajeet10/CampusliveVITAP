@@ -5,6 +5,7 @@ import MainLayout from './components/MainLayout';
 import LoadingScreen from './components/LoadingScreen';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
+import AnimatedBackground from './components/AnimatedBackground';
 
 const Home = lazy(() => import('./pages/Home'));
 const CampusMap = lazy(() => import('./pages/CampusMap'));
@@ -35,7 +36,9 @@ function AppContent() {
   }, []);
 
   return (
-    <>
+    <div className="relative z-0 min-h-screen bg-[#06090f]">
+      <AnimatedBackground />
+
       {!showApp && (
         <LoadingScreen isDataLoading={isLoading} onReady={handleLoadingReady} />
       )}
@@ -78,7 +81,7 @@ function AppContent() {
           )}
         </motion.div>
       )}
-    </>
+    </div>
   );
 }
 

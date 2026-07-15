@@ -19,7 +19,7 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#06090f] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="flex h-screen text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Sidebar Navigation */}
       <Sidebar 
         isCollapsed={isCollapsed} 

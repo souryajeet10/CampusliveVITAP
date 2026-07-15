@@ -83,6 +83,8 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
   const distance = event.distance || 'Near you';
   const organizerAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${event.createdBy || event.id}`;
   const organizerName = event.creatorName || 'CampusLive User';
+  const organizerProfile = participantProfiles.find(p => p.id === event.createdBy);
+  const isOrganizerAdmin = event.creatorRole === 'supreme_admin' || organizerProfile?.role === 'supreme_admin';
   const tags = event.tags || [`#${event.category}`, '#CampusLive'];
 
   const displayProfiles = event.participants ? event.participants.map(id => {
@@ -226,8 +228,20 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
                       className="w-8 h-8 rounded-full bg-slate-800 border border-slate-800" 
                     />
                     <div>
-                      <p className="text-xs font-bold text-slate-200">{organizerName}</p>
-                      <p className="text-[9px] text-slate-500 font-medium tracking-wide">Event Organizer</p>
+                      <p className="text-xs font-bold text-slate-200 flex items-center gap-1">
+                        <span>{organizerName}</span>
+                        {isOrganizerAdmin && (
+                          <span title="Supreme Admin" className="text-amber-400 text-[10px]">👑</span>
+                        )}
+                      </p>
+                      <p className="text-[9px] text-slate-500 font-medium tracking-wide flex items-center gap-1.5">
+                        <span>Event Organizer</span>
+                        {isOrganizerAdmin && (
+                          <span className="text-[8px] px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/25 text-amber-400 font-black uppercase tracking-wider scale-90 origin-left">
+                            Admin
+                          </span>
+                        )}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -310,7 +324,12 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
                               className="w-8 h-8 rounded-full bg-slate-800 border border-slate-800 object-cover"
                             />
                             <div className="min-w-0 text-left">
-                              <p className="text-xs font-bold text-slate-200 truncate">{user.name}</p>
+                              <p className="text-xs font-bold text-slate-200 truncate flex items-center gap-1">
+                                <span>{user.name}</span>
+                                {user.role === 'supreme_admin' && (
+                                  <span title="Supreme Admin" className="text-amber-400 text-[10px]">👑</span>
+                                )}
+                              </p>
                               <p className="text-[9px] text-slate-500 font-semibold truncate">
                                 {[
                                   user.username ? `@${user.username}` : null,

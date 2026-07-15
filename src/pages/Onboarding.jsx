@@ -57,7 +57,7 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#06090f] text-slate-200 flex flex-col items-center justify-center p-6 font-sans overflow-hidden select-none">
+    <div className="relative min-h-screen w-full text-slate-200 flex flex-col items-center justify-center p-6 font-sans overflow-hidden select-none">
       {/* Background gradients */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full filter blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full filter blur-3xl pointer-events-none" />
@@ -118,7 +118,7 @@ const Onboarding = () => {
                   onClick={() => setMode('register')}
                   className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/15 transition-all cursor-pointer active:scale-98"
                 >
-                  <span>Create ID</span>
+                  <span>Create Campus ID</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Key, 
@@ -21,6 +22,7 @@ const SettingsPage = () => {
   const { currentUser, logout } = useAuth();
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const navigate = useNavigate();
 
   if (!currentUser) return null;
 
@@ -90,20 +92,20 @@ Save this credentials card. You will need your unique Campus ID to access your p
               <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-4 ring-[#080b11]"></span>
             </div>
             
-            <h2 className="text-base font-bold text-white truncate w-full">{currentUser.name}</h2>
+            <h2 className="text-base font-bold text-white truncate w-full flex items-center justify-center gap-1">
+              <span>{currentUser.name}</span>
+              {currentUser.role === 'supreme_admin' && (
+                <span title="Supreme Admin" className="text-amber-400 text-sm">👑</span>
+              )}
+            </h2>
             <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mt-0.5">{currentUser.department}</p>
             <p className="text-[9px] text-gray-500 font-semibold tracking-wider uppercase mt-0.5">{currentUser.year}</p>
             
-            <div className="w-full border-t border-slate-900/60 my-4 pt-4 grid grid-cols-2 gap-2">
-              <div className="p-2 rounded-xl bg-slate-950/40 border border-slate-900">
-                <span className="text-xs font-black text-white">Lvl {currentUser.level || 1}</span>
-                <p className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-0.5">Level</p>
-              </div>
-              <div className="p-2 rounded-xl bg-slate-950/40 border border-slate-900">
-                <span className="text-xs font-black text-white">{currentUser.xp || 0} XP</span>
-                <p className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-0.5">Exp Points</p>
-              </div>
-            </div>
+            {currentUser.role === 'supreme_admin' && (
+              <span className="mt-3.5 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-400 border border-amber-500/35 flex items-center gap-1 shadow-md shadow-amber-500/5 animate-pulse">
+                👑 Supreme Admin
+              </span>
+            )}
           </div>
         </div>
 
@@ -159,6 +161,31 @@ Save this credentials card. You will need your unique Campus ID to access your p
               </div>
             </div>
           </div>
+
+          {/* Supreme Admin Section */}
+          {currentUser.role === 'supreme_admin' && (
+            <div className="p-6 rounded-2xl bg-[#080b11] border border-slate-900 shadow-xl space-y-5">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-900/60">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Supreme Admin</span>
+              </h3>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-950/50 border border-slate-900">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-black text-white tracking-wide">SUPREME ADMIN</p>
+                  <p className="text-[10px] text-gray-500 leading-normal">
+                    You have unrestricted access to manage Campus Live.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="h-10 px-5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-lg shadow-indigo-600/10 border border-indigo-400/25 shrink-0"
+                >
+                  <span>🛡️ Open Admin Dashboard</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Badges / Accomplishments */}
           <div className="p-6 rounded-2xl bg-[#080b11] border border-slate-900 shadow-xl space-y-4">

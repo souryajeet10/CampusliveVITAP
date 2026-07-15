@@ -363,7 +363,10 @@ const CampusMap = () => {
             : 'Just now',
           iconName: iconNames[act.category] || 'Sparkles',
           participants: act.participants || [],
-          participantCount: (act.participants || []).length
+          participantCount: (act.participants || []).length,
+          createdBy: act.createdBy || '',
+          creatorName: act.creatorName || 'CampusLive User',
+          building: act.building || 'Campus Landmark'
         }));
 
         setEvents(mapped);
@@ -419,6 +422,7 @@ const CampusMap = () => {
       const finalData = {
         name: activityData.name,
         room: activityData.room,
+        building: activityData.building || 'Campus Landmark',
         category: activityData.category,
         latitude: activityData.coordinates[0],
         longitude: activityData.coordinates[1],
@@ -431,6 +435,7 @@ const CampusMap = () => {
         color: activityData.color,
         createdBy: currentUserId,
         creatorName: currentUser?.name || 'Aarav Sharma',
+        creatorRole: currentUser?.role || '',
         participants: [currentUserId]
       };
 

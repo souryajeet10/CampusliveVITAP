@@ -106,6 +106,7 @@ const CreateActivityModal = ({ isOpen, onClose, tempCoords, onSubmit, isSubmitti
       color: bannerColor,
       room: roomName || 'Campus Commons',
       coordinates: tempCoords,
+      building: building,
     });
   };
 

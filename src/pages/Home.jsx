@@ -28,7 +28,7 @@ import {
   accentGradients, 
   mockEvents 
 } from '../utils/constants';
-import { subscribeActivities, joinActivity, deleteActivity } from '../services/activityService';
+import { subscribeActivities, joinActivity, deleteActivity, updateActivity } from '../services/activityService';
 import { subscribeActivePins } from '../services/lostFoundService';
 import { getRelativeTime } from '../utils/time';
 import EventDetailDrawer from '../components/EventDetailDrawer';
@@ -144,6 +144,28 @@ const Home = () => {
   const [now, setNow] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
 
+  const featuredEvent = events.find(e => e.featured);
+
+  const handleFeatureEvent = async (eventId) => {
+    try {
+      const currentFeatured = events.find(e => e.featured);
+      if (currentFeatured) {
+        await updateActivity(currentFeatured.id, { featured: false });
+      }
+      await updateActivity(eventId, { featured: true });
+    } catch (err) {
+      console.error('Failed to feature event:', err);
+    }
+  };
+
+  const handleUnfeatureEvent = async (eventId) => {
+    try {
+      await updateActivity(eventId, { featured: false });
+    } catch (err) {
+      console.error('Failed to unfeature event:', err);
+    }
+  };
+
   // Tick timer for countdown calculations
   useEffect(() => {
     const timer = setInterval(() => {
@@ -189,7 +211,8 @@ const Home = () => {
         creatorName: act.creatorName || '',
         createdAt: act.createdAt || null,
         participants: act.participants || [],
-        participantCount: (act.participants || []).length
+        participantCount: (act.participants || []).length,
+        featured: act.featured || false
       }));
 
       setEvents(mapped);
@@ -598,60 +621,103 @@ const Home = () => {
           </div>
 
           {/* Quick Featured Event Card */}
-          <div className="rounded-2xl border border-slate-900 bg-[#080b11] p-5 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-900 mb-4">
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/15">
-                Featured Event
-              </span>
-              <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                <span>4.8</span>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-left">
-              <div>
-                <h3 className="text-sm font-bold text-white">AI Agents Workshop</h3>
-                <p className="text-[11px] text-gray-500 leading-relaxed mt-1">
-                  Build autonomous AI coding agents in groups. Share APIs, test prompt chains, and compete for cloud vouchers.
-                </p>
+          {(featuredEvent || currentUser?.role === 'supreme_admin') && (
+            <div className="rounded-2xl border border-slate-900 bg-[#080b11] p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-900 mb-2">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/15">
+                  Featured Event
+                </span>
+                {featuredEvent && (
+                  <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    <span>Featured</span>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Location</span>
+              {featuredEvent ? (
+                <div className="space-y-3 text-left">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">{featuredEvent.name}</h3>
+                    <p className="text-[11px] text-gray-500 leading-relaxed mt-1 line-clamp-3">
+                      {featuredEvent.description}
+                    </p>
                   </div>
-                  <span className="font-semibold text-slate-300">Room 102, Block C</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Time</span>
-                  </div>
-                  <span className="font-semibold text-slate-300">Today, 4:00 PM</span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Attendees</span>
-                  </div>
-                  <span className="font-semibold text-slate-350">42 checked-in</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-900">
-              <NavLink
-                to="/map"
-                className="w-full h-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/10 flex items-center justify-center gap-1.5 active:scale-98"
-              >
-                <span>Join Activity</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </NavLink>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>Location</span>
+                      </div>
+                      <span className="font-semibold text-slate-300 truncate max-w-[150px]">
+                        {getBuildingName(featuredEvent.coordinates)} • {featuredEvent.room}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Time</span>
+                      </div>
+                      <span className="font-semibold text-slate-300">{featuredEvent.time}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1">
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Attendees</span>
+                      </div>
+                      <span className="font-semibold text-slate-350">{featuredEvent.participantCount} joined</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-slate-900">
+                    <button
+                      onClick={() => setSelectedEventId(featuredEvent.id)}
+                      className="flex-1 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold transition-all shadow-md shadow-blue-600/10 flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
+                    >
+                      <span>View Details</span>
+                      <ArrowUpRight className="w-3 h-3" />
+                    </button>
+                    {currentUser?.role === 'supreme_admin' && (
+                      <button
+                        onClick={() => handleUnfeatureEvent(featuredEvent.id)}
+                        className="px-3 h-9 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 border border-rose-500/20 text-[10px] font-bold transition-all active:scale-98 cursor-pointer"
+                        title="Remove from Featured"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Supreme Admin selector (when no event is featured) */
+                <div className="space-y-3 text-left">
+                  <p className="text-[11px] text-gray-500 leading-normal">
+                    No active featured event. Select an event to display it prominently on the dashboard.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-bold text-gray-650 uppercase tracking-wider">Feature an Event</label>
+                    <select
+                      onChange={(e) => {
+                        const eventId = e.target.value;
+                        if (eventId) handleFeatureEvent(eventId);
+                      }}
+                      defaultValue=""
+                      className="w-full h-9 px-2.5 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 text-xs focus:outline-none focus:border-indigo-500/80 transition-all font-semibold cursor-pointer"
+                    >
+                      <option value="" disabled>-- Choose an Event --</option>
+                      {events.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name} ({e.category})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
         </div>
 

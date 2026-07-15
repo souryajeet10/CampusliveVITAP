@@ -202,7 +202,12 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                 className="flex-1 min-w-0 text-left cursor-pointer"
                 onClick={handleProfileClick}
               >
-                <p className="text-[13px] font-semibold text-white truncate">{currentUser?.name || 'Aarav Sharma'}</p>
+                <p className="text-[13px] font-semibold text-white truncate flex items-center gap-1">
+                <span>{currentUser?.name || 'Aarav Sharma'}</span>
+                {currentUser?.role === 'supreme_admin' && (
+                  <span title="Supreme Admin" className="text-amber-400 shrink-0 text-xs">👑</span>
+                )}
+              </p>
                 <p className="text-[10px] text-slate-500 truncate font-medium">
                   {getAbbreviatedDept(currentUser?.department)} · @VITAP
                 </p>
