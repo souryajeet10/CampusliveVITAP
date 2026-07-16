@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents, Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -20,7 +20,7 @@ import {
   Sparkles,
   Inbox
 } from 'lucide-react';
-import { VIT_AP_CENTER, VIT_AP_BOUNDS } from '../utils/constants';
+import { VIT_AP_CENTER, VIT_AP_BOUNDS, CAMPUS_POLYGON } from '../utils/constants';
 import { useLostFoundPins } from '../hooks/useLostFoundPins';
 import { addLostFoundPin, resolvePin, subscribeResolvedCount } from '../services/lostFoundService';
 import { getRelativeTime, getRemainingTime } from '../utils/time';
@@ -56,17 +56,23 @@ const MapClickSelector = ({ onMapClick, isListening }) => {
   return null;
 };
 
-// Map controller sub-component to handle programmatic panning (flyTo)
-const MapController = ({ center, zoom }) => {
+// Map controller sub-component to handle programmatic panning (flyTo/fitBounds)
+const MapController = ({ center, zoom, bounds }) => {
   const map = useMap();
   useEffect(() => {
-    if (center) {
+    if (bounds) {
+      map.fitBounds(bounds, {
+        padding: [30, 30],
+        animate: true,
+        duration: 1.2
+      });
+    } else if (center) {
       map.flyTo(center, zoom, {
         animate: true,
         duration: 1.2
       });
     }
-  }, [center, zoom, map]);
+  }, [center, zoom, bounds, map]);
   return null;
 };
 
@@ -187,7 +193,8 @@ const LostFound = () => {
   
   // Map and placement state
   const [mapCenter, setMapCenter] = useState(VIT_AP_CENTER);
-  const [mapZoom, setMapZoom] = useState(16);
+  const [mapZoom, setMapZoom] = useState(19);
+  const [mapBounds, setMapBounds] = useState(CAMPUS_POLYGON);
   const [selectedPin, setSelectedPin] = useState(null);
   const [mobileView, setMobileView] = useState('map'); // 'map' | 'list'
 
@@ -265,6 +272,9 @@ const LostFound = () => {
 
   const handleMapClick = useCallback((latlng) => {
     setTempCoords([latlng.lat, latlng.lng]);
+    setMapBounds(null);
+    setMapCenter([latlng.lat, latlng.lng]);
+    setMapZoom(19);
     setPlacementMode(false);
     setIsFormOpen(true);
   }, []);
@@ -298,8 +308,9 @@ const LostFound = () => {
 
   const handleSelectPin = (pin) => {
     setSelectedPin(pin);
+    setMapBounds(null);
     setMapCenter([pin.latitude, pin.longitude]);
-    setMapZoom(18);
+    setMapZoom(19);
     setMobileView('map');
   };
 
@@ -397,7 +408,7 @@ const LostFound = () => {
       <div className="flex-1 flex flex-col md:flex-row gap-6 h-full min-h-0 w-full overflow-hidden">
         
         {/* 1. Left Sidebar: Filters, Search, Directory List */}
-        <div className={`w-full md:w-[280px] lg:w-[320px] flex-col bg-[#080b11] border border-slate-900 rounded-2xl p-4 md:p-5 shadow-xl h-full overflow-hidden
+        <div className={`w-full md:w-[380px] lg:w-[420px] flex-col bg-[#080b11] border border-slate-900 rounded-2xl p-4 md:p-5 shadow-xl h-full overflow-hidden
           ${mobileView === 'list' ? 'flex' : 'hidden md:flex'}`}>
           
           <div className="space-y-4 mb-4 flex-shrink-0">
@@ -499,9 +510,9 @@ const LostFound = () => {
           <MapContainer
             center={mapCenter}
             zoom={mapZoom}
-            minZoom={14}
+            minZoom={17}
             maxZoom={19}
-            maxBounds={VIT_AP_BOUNDS}
+            maxBounds={CAMPUS_POLYGON}
             maxBoundsViscosity={1.0}
             zoomControl={false}
             className="w-full h-full z-10 dark-map"
@@ -512,7 +523,19 @@ const LostFound = () => {
             />
             
             <ZoomControl position="bottomright" />
-            <MapController center={mapCenter} zoom={mapZoom} />
+            <MapController center={mapCenter} zoom={mapZoom} bounds={mapBounds} />
+
+            {/* Campus Polygon Boundary Outline */}
+            <Polygon 
+              positions={CAMPUS_POLYGON}
+              pathOptions={{
+                color: '#6366f1',
+                dashArray: '6, 6',
+                fillColor: '#6366f1',
+                fillOpacity: 0.04,
+                weight: 2.5
+              }}
+            />
             
             {/* Click listener for placement mode */}
             <MapClickSelector 

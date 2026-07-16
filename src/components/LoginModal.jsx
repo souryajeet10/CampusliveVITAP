@@ -10,20 +10,28 @@ const LoginModal = ({ onLogin, onBack, onError }) => {
   const [campusId, setCampusId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Automatically formats entry as CL-XXXX-XXXX
+  // Automatically formats entry for VITAP-XXXXXX or CL-XXXX-XXXX
   const handleInputChange = (e) => {
     let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     
-    // Auto insert dash helper
-    if (val.length === 2 && !val.includes('-')) {
-      val = val + '-';
-    } else if (val.length === 7 && (val.match(/-/g) || []).length === 1) {
-      val = val + '-';
-    }
-    
-    // Bound characters length
-    if (val.length <= 12) {
-      setCampusId(val);
+    if (val.startsWith('VITAP')) {
+      // Auto insert dash helper for VITAP-XXXXXX
+      if (val.length === 5 && !val.includes('-')) {
+        val = val + '-';
+      }
+      if (val.length <= 12) {
+        setCampusId(val);
+      }
+    } else {
+      // Auto insert dash helper for CL-XXXX-XXXX
+      if (val.length === 2 && !val.includes('-')) {
+        val = val + '-';
+      } else if (val.length === 7 && (val.match(/-/g) || []).length === 1) {
+        val = val + '-';
+      }
+      if (val.length <= 12) {
+        setCampusId(val);
+      }
     }
   };
 
@@ -74,14 +82,14 @@ const LoginModal = ({ onLogin, onBack, onError }) => {
             <input
               type="text"
               required
-              placeholder="CL-7X9A-2KQ8"
+              placeholder="VITAP-7K4P9X"
               value={campusId}
               onChange={handleInputChange}
               className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 transition-all text-xs font-semibold tracking-widest"
             />
           </div>
           <p className="text-[9px] text-gray-650 leading-relaxed pl-1 pt-1 font-medium">
-            Format should be exactly: CL-XXXX-XXXX
+            Format: VITAP-XXXXXX (or old CL-XXXX-XXXX)
           </p>
         </div>
 

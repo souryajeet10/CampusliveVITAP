@@ -61,7 +61,7 @@ const AnimatedCounter = ({ value }) => {
 
 // Activity Loading Shimmer
 const ActivityCardSkeleton = () => (
-  <div className="p-5 rounded-2xl border border-slate-900 bg-[#080b11]/45 space-y-4 animate-pulse select-none">
+  <div className="p-5 rounded-2xl border border-slate-900 bg-[#080b11] space-y-4 animate-pulse select-none">
     <div className="h-28 bg-slate-900 rounded-xl" />
     <div className="flex justify-between items-center">
       <div className="h-4 bg-slate-900 rounded w-1/4" />
@@ -241,10 +241,10 @@ const Events = () => {
       {/* ─── 2. Quick Stats Grid ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Live Now', value: stats.live, icon: Activity, color: 'text-rose-400 bg-rose-500/5 border-rose-500/10' },
-          { label: 'Upcoming', value: stats.upcoming, icon: Calendar, color: 'text-indigo-400 bg-indigo-500/5 border-indigo-500/10' },
-          { label: 'Joined', value: stats.joined, icon: Users, color: 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10' },
-          { label: 'Hosted', value: stats.hosted, icon: Award, color: 'text-amber-450 bg-amber-500/5 border-amber-500/10' }
+          { label: 'Live Now', value: stats.live, icon: Activity, color: 'text-rose-400 bg-[#080b11] border-slate-900/80' },
+          { label: 'Upcoming', value: stats.upcoming, icon: Calendar, color: 'text-indigo-400 bg-[#080b11] border-slate-900/80' },
+          { label: 'Joined', value: stats.joined, icon: Users, color: 'text-emerald-400 bg-[#080b11] border-slate-900/80' },
+          { label: 'Hosted', value: stats.hosted, icon: Award, color: 'text-amber-450 bg-[#080b11] border-slate-900/80' }
         ].map((item, idx) => {
           const Icon = item.icon;
           return (
@@ -264,7 +264,7 @@ const Events = () => {
       </div>
 
       {/* ─── 3. Search & Tabs & Filter Chips ─── */}
-      <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-900/80 shadow-md backdrop-blur-md space-y-4">
+      <div className="p-4 rounded-2xl bg-[#080b11] border border-slate-900 shadow-md space-y-4">
         {/* Search & Tabs Row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Search Input */}
@@ -337,7 +337,7 @@ const Events = () => {
               <div 
                 key={event.id}
                 onClick={() => setSelectedEventId(event.id)}
-                className="group p-5 rounded-2xl border border-slate-900 bg-[#080b11]/45 hover:border-slate-800 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:-translate-y-0.5 shadow-sm text-left"
+                className="group p-5 rounded-2xl border border-slate-900 bg-[#080b11] hover:border-slate-800 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:-translate-y-0.5 shadow-sm text-left"
               >
                 {/* Visual Header / Banner representation */}
                 <div className="relative h-28 w-full rounded-xl bg-slate-900/80 border border-slate-850 overflow-hidden flex-shrink-0">

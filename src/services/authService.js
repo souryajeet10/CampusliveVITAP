@@ -4,21 +4,23 @@ import { db } from '../firebase/firebase';
 const CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // exclude confusing chars like 0, 1, O, I
 
 /**
- * Generates a random 4-character segment.
+ * Generates a random 6-character suffix using Web Crypto API.
  */
-const generateSegment = () => {
-  return Array.from({ length: 4 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+const generateSecureSuffix = () => {
+  const array = new Uint8Array(6);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, (byte) => CHARS[byte & 31]).join('');
 };
 
 /**
- * Generates a unique Campus ID format CL-XXXX-XXXX and checks Firestore for collision.
+ * Generates a unique Campus ID format VITAP-XXXXXX and checks Firestore for collision.
  */
 export const generateUniqueCampusId = async () => {
   let unique = false;
   let campusId = '';
   
   while (!unique) {
-    campusId = `CL-${generateSegment()}-${generateSegment()}`;
+    campusId = `VITAP-${generateSecureSuffix()}`;
     const userDocRef = doc(db, 'users', campusId);
     const userDocSnap = await getDoc(userDocRef);
     if (!userDocSnap.exists()) {
@@ -33,8 +35,9 @@ export const generateUniqueCampusId = async () => {
  * Validates format of a Campus ID.
  */
 export const validateCampusIdFormat = (campusId) => {
-  const regex = /^CL-[2-9A-HJK-NP-Z]{4}-[2-9A-HJK-NP-Z]{4}$/;
-  return regex.test(campusId);
+  const oldRegex = /^CL-[2-9A-HJK-NP-Z]{4}-[2-9A-HJK-NP-Z]{4}$/;
+  const newRegex = /^VITAP-[2-9A-HJK-NP-Z]{6}$/;
+  return oldRegex.test(campusId) || newRegex.test(campusId);
 };
 
 /**
@@ -42,7 +45,7 @@ export const validateCampusIdFormat = (campusId) => {
  */
 export const loginWithCampusId = async (campusId) => {
   if (!validateCampusIdFormat(campusId)) {
-    throw new Error('Invalid Campus ID format. Example: CL-7X9A-2KQ8');
+    throw new Error('Invalid Campus ID format. Example: VITAP-7K4P9X');
   }
   
   const userDocRef = doc(db, 'users', campusId);

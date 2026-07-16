@@ -41,7 +41,7 @@
 
 /* Custom Leaflet Map Styling */
 .dark-map .leaflet-tile-container {
-  filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%);
+  /* Bright mode tiles enabled */
 }
 
 .dark-map .leaflet-container {
@@ -127,5 +127,32 @@
 
 .animate-marker-in {
   animation: markerFadeIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Card and sidebar readability overrides for high contrast against glowing background */
+.bg-slate-900\/30, 
+.bg-slate-900\/40, 
+.bg-slate-900\/50,
+.bg-slate-950\/20, 
+.bg-slate-950\/40, 
+.bg-slate-950\/60,
+.bg-\[\#080b11\] {
+  background-color: rgba(11, 15, 25, 0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  border-color: rgba(30, 41, 59, 0.85) !important;
+}
+
+/* Brighten text colors for extreme legibility */
+.text-gray-400, .text-slate-400 {
+  color: #cbd5e1 !important; /* Light slate/gray */
+}
+.text-gray-500, .text-slate-500, .text-gray-450 {
+  color: #94a3b8 !important; /* Brighter gray */
+}
+.text-gray-505, .text-gray-655, .text-gray-555 {
+  color: #8fa0b5 !important;
+}
+.text-slate-350 {
+  color: #f1f5f9 !important; /* Extremely high contrast light slate */
 }
 

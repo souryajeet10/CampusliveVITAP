@@ -1,10 +1,17 @@
 import { Sparkles, Flame, Trophy, Calendar } from 'lucide-react';
 
-export const VIT_AP_CENTER = [16.4971, 80.4992];
+export const VIT_AP_CENTER = [16.494144, 80.498191];
 
 export const VIT_AP_BOUNDS = [
   [16.4880, 80.4850], // Southwest boundary corner
   [16.5060, 80.5130]  // Northeast boundary corner
+];
+
+export const CAMPUS_POLYGON = [
+  [16.497134, 80.494562],
+  [16.497216, 80.501756],
+  [16.491131, 80.501820],
+  [16.491072, 80.494664]
 ];
 
 export const accentGradients = {

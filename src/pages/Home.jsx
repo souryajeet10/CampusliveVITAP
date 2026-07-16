@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import { 
-  Search, 
-  SlidersHorizontal, 
   Plus, 
   MapPin, 
   ChevronRight, 
@@ -26,6 +24,7 @@ import {
 import { 
   VIT_AP_CENTER, 
   VIT_AP_BOUNDS, 
+  CAMPUS_POLYGON,
   accentGradients, 
   mockEvents 
 } from '../utils/constants';
@@ -139,8 +138,6 @@ const Home = () => {
   const [events, setEvents] = useState([]);
   const [lfPins, setLfPins] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [now, setNow] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
@@ -175,12 +172,7 @@ const Home = () => {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+
 
   useEffect(() => {
     const unsubscribe = subscribeActivities((firestoreActivities) => {
@@ -244,13 +236,7 @@ const Home = () => {
   // Filter events based on active category & debounced search query
   const filteredEvents = events.filter(event => {
     const matchesFilter = activeFilter === 'All' || event.category === activeFilter;
-    const cleanSearch = debouncedSearchQuery.toLowerCase();
-    const matchesSearch = 
-      event.name.toLowerCase().includes(cleanSearch) || 
-      event.category.toLowerCase().includes(cleanSearch) ||
-      event.description.toLowerCase().includes(cleanSearch) ||
-      event.room.toLowerCase().includes(cleanSearch);
-    return matchesFilter && matchesSearch;
+    return matchesFilter;
   });
 
   // Helper to format local date YYYY-MM-DD
@@ -265,15 +251,17 @@ const Home = () => {
   const todayStr = getLocalDateString(now);
   const liveCount = events.filter(e => e.isLive).length;
   const eventsTodayCount = events.filter(e => e.date === todayStr).length;
-  const totalParticipantsToday = events
-    .filter(e => e.date === todayStr)
-    .reduce((sum, e) => sum + e.participantCount, 0);
+  const totalParticipantsToday = new Set(
+    events
+      .filter(e => e.date === todayStr)
+      .flatMap(e => e.participants || [])
+  ).size;
   const trendingEvent = events.length > 0
     ? [...events].sort((a, b) => b.participantCount - a.participantCount)[0]
     : null;
 
   // Starting Soon: next 60 minutes
-  const startingSoonEvents = events
+  const startingSoonEvents = filteredEvents
     .map(event => {
       if (!event.date || !event.startTime) return null;
       const [year, month, day] = event.date.split('-').map(Number);
@@ -293,7 +281,7 @@ const Home = () => {
     .sort((a, b) => a.diffMins - b.diffMins);
 
   // Recently Added: newest created first
-  const recentlyAddedEvents = [...events]
+  const recentlyAddedEvents = [...filteredEvents]
     .sort((a, b) => {
       const aTime = a.createdAt?.seconds || 0;
       const bTime = b.createdAt?.seconds || 0;
@@ -304,37 +292,22 @@ const Home = () => {
   return (
     <div className="space-y-6 font-sans text-gray-300 pb-10">
       
-      {/* 1. Category Filter Chips & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/40 border border-slate-900 shadow-sm backdrop-blur-md">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
-          <input
-            type="text"
-            placeholder="Search activities, rooms, tags..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-9 pl-9 pr-4 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 transition-all text-xs font-semibold"
-          />
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
-          <div className="flex gap-1.5">
-            {categoryFilters.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveFilter(category)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer
-                  ${activeFilter === category 
-                    ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-sm shadow-blue-500/5' 
-                    : 'bg-slate-950/40 border-slate-900 text-gray-500 hover:text-gray-300 hover:bg-slate-900/50'
-                  }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-          <button className="p-2 rounded-lg bg-slate-950/40 border border-slate-900 text-gray-500 hover:text-white transition-all flex-shrink-0">
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-          </button>
+      {/* 1. Category Filter Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none p-3 rounded-xl bg-[#080b11] border border-slate-900 shadow-sm">
+        <div className="flex gap-1.5">
+          {categoryFilters.map((category) => (
+            <button
+              key={category}
+              onClick={() => setActiveFilter(category)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer
+                ${activeFilter === category 
+                  ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-sm shadow-blue-500/5' 
+                  : 'bg-slate-950/40 border-slate-900 text-gray-500 hover:text-gray-300 hover:bg-slate-900/50'
+                }`}
+            >
+              {category}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -345,13 +318,13 @@ const Home = () => {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Interactive Map */}
-          <div className="relative rounded-2xl border border-slate-900 bg-[#080b11] overflow-hidden shadow-2xl h-[400px] md:h-[440px] dark-map">
+          <div className="relative rounded-2xl border border-slate-900 bg-[#080b11] overflow-hidden shadow-2xl h-[500px] dark-map">
             <MapContainer 
               center={VIT_AP_CENTER} 
-              zoom={15} 
-              minZoom={14}
+              zoom={16} 
+              minZoom={16}
               maxZoom={19}
-              maxBounds={VIT_AP_BOUNDS}
+              maxBounds={CAMPUS_POLYGON}
               maxBoundsViscosity={1.0}
               zoomControl={false}
               className="w-full h-full z-10"
@@ -361,6 +334,19 @@ const Home = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <ZoomControl position="bottomright" />
+
+              {/* Campus Polygon Boundary Outline */}
+              <Polygon 
+                positions={CAMPUS_POLYGON}
+                pathOptions={{
+                  color: '#6366f1',
+                  dashArray: '6, 6',
+                  fillColor: '#6366f1',
+                  fillOpacity: 0.04,
+                  weight: 2.5
+                }}
+              />
+
               {filteredEvents.map((event) => (
                 <Marker
                   key={event.id}

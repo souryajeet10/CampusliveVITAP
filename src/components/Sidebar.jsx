@@ -219,7 +219,7 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                   )}
                 </p>
                 <p className="text-[10px] text-slate-500 truncate font-medium">
-                  {getAbbreviatedDept(currentUser?.department)} · @VITAP
+                  {getAbbreviatedDept(currentUser?.department)} · {currentUser?.year || '🌱 1st Year'}
                 </p>
               </motion.div>
 

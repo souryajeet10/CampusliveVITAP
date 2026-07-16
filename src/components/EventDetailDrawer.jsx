@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  MapPin, 
-  Clock, 
-  Calendar, 
-  Users, 
-  Navigation, 
+import {
+  X,
+  MapPin,
+  Clock,
+  Calendar,
+  Users,
+  Navigation,
   Trash2,
   AlertTriangle,
   Info
@@ -156,8 +156,8 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
             exit="exit"
             transition={{ type: 'spring', damping: 28, stiffness: 220 }}
             className={`fixed z-50 bg-[#0b0f19] shadow-2xl flex flex-col font-sans text-slate-350
-              ${isMobile 
-                ? 'bottom-0 left-0 right-0 h-[85vh] rounded-t-3xl border-t border-slate-900' 
+              ${isMobile
+                ? 'bottom-0 left-0 right-0 h-[85vh] rounded-t-3xl border-t border-slate-900'
                 : 'top-0 right-0 h-screen w-full max-w-md border-l border-slate-900'
               }`}
           >
@@ -170,14 +170,14 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
 
             {/* Content Scrollable Area */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-none pb-24">
-              
+
               {/* Header / Banner */}
               <div className="relative h-48 w-full bg-slate-900 shrink-0">
                 <div className={`absolute inset-0 bg-gradient-to-br ${accentGradients[event.color] || 'from-indigo-500 to-purple-600'} opacity-20`} />
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]" />
-                
+
                 {/* Close Button */}
-                <button 
+                <button
                   onClick={onClose}
                   className="absolute top-4 right-4 p-2 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 hover:scale-105 active:scale-95 transition-all z-10"
                 >
@@ -186,7 +186,7 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
 
                 {/* Creator Delete Button */}
                 {isCreator && (
-                  <button 
+                  <button
                     onClick={() => setShowDeleteConfirm(true)}
                     className="absolute top-4 right-14 p-2 rounded-full bg-black/40 backdrop-blur-md text-rose-450 hover:text-rose-300 hover:bg-black/60 hover:scale-105 active:scale-95 transition-all z-10"
                     title="Delete Activity"
@@ -199,8 +199,8 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
                 <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
                   <div className="flex gap-2">
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded backdrop-blur-md border shadow-sm
-                      ${event.isLive 
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+                      ${event.isLive
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
                         : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                       }`}
                     >
@@ -215,17 +215,17 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
 
               {/* Body Content */}
               <div className="p-6 space-y-8 text-left">
-                
+
                 {/* Title & Organizer */}
                 <div className="space-y-3">
                   <h1 className="text-xl font-bold text-white tracking-tight leading-tight">
                     {event.name}
                   </h1>
                   <div className="flex items-center gap-2.5">
-                    <img 
-                      src={organizerAvatar} 
+                    <img
+                      src={organizerAvatar}
                       alt={organizerName}
-                      className="w-8 h-8 rounded-full bg-slate-800 border border-slate-800" 
+                      className="w-8 h-8 rounded-full bg-slate-800 border border-slate-800"
                     />
                     <div>
                       <p className="text-xs font-bold text-slate-200 flex items-center gap-1">
@@ -318,9 +318,9 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
                       {displayProfiles.map((user) => (
                         <div key={user.id} className="flex items-center justify-between p-2 rounded-xl bg-slate-900/10 border border-slate-900 hover:border-slate-800 transition-all">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <img 
-                              src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`} 
-                              alt={user.name} 
+                            <img
+                              src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`}
+                              alt={user.name}
                               className="w-8 h-8 rounded-full bg-slate-800 border border-slate-800 object-cover"
                             />
                             <div className="min-w-0 text-left">
@@ -356,12 +356,12 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
 
             {/* Bottom Sticky Action Bar */}
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-[#0b0f19]/90 backdrop-blur-md border-t border-slate-900 z-20">
-              <button 
+              <button
                 onClick={handleJoinLeaveToggle}
                 disabled={isJoiningLeaving || !currentUserId}
                 className={`w-full h-11 rounded-xl text-white font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 shadow-lg active:scale-98 disabled:opacity-50
-                  ${hasJoined 
-                    ? 'bg-rose-500/10 border border-rose-500/20 text-rose-450 hover:bg-rose-500/20 shadow-rose-500/5' 
+                  ${hasJoined
+                    ? 'bg-rose-500/10 border border-rose-500/20 text-rose-450 hover:bg-rose-500/20 shadow-rose-500/5'
                     : `bg-gradient-to-r ${accentGradients[event.color] || 'from-indigo-500 to-purple-600'} hover:opacity-90 shadow-indigo-500/20`
                   }`}
               >

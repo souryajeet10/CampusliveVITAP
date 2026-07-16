@@ -34,7 +34,7 @@ const Navbar = ({ setMobileOpen }) => {
   const dateStr = time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 sm:px-6 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900 font-sans">
+    <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 sm:px-6 bg-[#080b11] border-b border-slate-900 font-sans">
       {/* Left section */}
       <div className="flex items-center gap-3 flex-1 min-w-0 relative">
         {/* Mobile: Hamburger */}
@@ -88,6 +88,7 @@ const Navbar = ({ setMobileOpen }) => {
           <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
             <div className="text-right leading-none">
               <p className="text-[11px] font-bold text-white">{currentUser.name}</p>
+              <p className="text-[9px] text-slate-500 font-semibold mt-0.5">{currentUser.year || '🌱 1st Year'}</p>
             </div>
             <img
               src={currentUser.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=Aarav"}

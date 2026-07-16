@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (idToLogin) => {
     const formattedId = idToLogin.trim().toUpperCase();
     if (!validateCampusIdFormat(formattedId)) {
-      throw new Error('Invalid Campus ID format. Use CL-XXXX-XXXX');
+      throw new Error('Invalid Campus ID format. Use VITAP-XXXXXX (or old CL-XXXX-XXXX)');
     }
     
     setIsLoading(true);

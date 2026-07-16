@@ -21,10 +21,10 @@ const DEPARTMENTS = [
 ];
 
 const YEARS = [
-  '1st Year (Freshman)',
-  '2nd Year (Sophomore)',
-  '3rd Year (Junior)',
-  '4th Year (Senior)',
+  '🌱 Fresher 1st year',
+  '📘 Second Year',
+  '🚀 3rd year',
+  '🎓 Senior (Final Year)',
   'Postgraduate / Masters',
   'PhD / Doctorate'
 ];

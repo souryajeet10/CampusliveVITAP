@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Key, 
-  Copy, 
-  Check, 
-  Download, 
-  LogOut, 
-  User, 
-  Trophy, 
-  BookOpen, 
+import {
+  Key,
+  Copy,
+  Check,
+  Download,
+  LogOut,
+  User,
+  Trophy,
+  BookOpen,
   Calendar,
   ShieldCheck
 } from 'lucide-react';
@@ -64,7 +64,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-4xl mx-auto space-y-8 pb-16 font-sans text-gray-300 text-left select-none"
@@ -76,18 +76,18 @@ Save this credentials card. You will need your unique Campus ID to access your p
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* Left Side: Profile Summary Card */}
         <div className="md:col-span-1 space-y-6">
           <div className="p-6 rounded-2xl bg-[#080b11] border border-slate-900 shadow-xl flex flex-col items-center text-center">
             <div className="relative mb-4">
-              <img 
-                src={currentUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentUser.id)}`} 
-                alt={currentUser.name} 
+              <img
+                src={currentUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentUser.id)}`}
+                alt={currentUser.name}
                 className="w-20 h-20 rounded-2xl bg-slate-900 border border-slate-800 p-1 object-cover"
               />
             </div>
-            
+
             <h2 className="text-base font-bold text-white truncate w-full flex items-center justify-center gap-1">
               <span>{currentUser.name}</span>
               {currentUser.role === 'supreme_admin' && (
@@ -96,7 +96,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
             </h2>
             <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mt-0.5">{currentUser.department}</p>
             <p className="text-[9px] text-gray-500 font-semibold tracking-wider uppercase mt-0.5">{currentUser.year}</p>
-            
+
             {currentUser.role === 'supreme_admin' && (
               <span className="mt-3.5 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-400 border border-amber-500/35 flex items-center gap-1 shadow-md shadow-amber-500/5 animate-pulse">
                 👑 Supreme Admin
@@ -107,7 +107,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
 
         {/* Right Side: Campus ID Details & Badges */}
         <div className="md:col-span-2 space-y-6">
-          
+
           {/* Campus ID Security Credentials Box */}
           <div className="p-6 rounded-2xl bg-[#080b11] border border-slate-900 shadow-xl space-y-5">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-900/60">
@@ -183,8 +183,8 @@ Save this credentials card. You will need your unique Campus ID to access your p
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {starterBadges.map((badge, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/40 border border-slate-900"
                 >
                   <span className="text-2xl shrink-0">{badge.icon}</span>
@@ -220,7 +220,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
               <CampusLiveIcon className="w-4.5 h-4.5" />
               <span>About CampusLive</span>
             </h3>
-            
+
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-xs font-medium">
               <div className="space-y-1">
                 <p className="text-[9px] text-gray-550 uppercase tracking-wider">App Name</p>

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 export default function AnimatedBackground() {
   const particles = useMemo(() => {
-    const count = 50;
+    const count = 75;
     const colors = {
       indigo: 'rgb(99, 102, 241)',
       blue: 'rgb(59, 130, 246)',
@@ -111,19 +111,24 @@ export default function AnimatedBackground() {
     <div className="fixed inset-0 overflow-hidden pointer-events-none select-none z-[-1]">
       <style dangerouslySetInnerHTML={{ __html: styleSheet }} />
       
-      {/* Premium subtle grid pattern with radial fading mask */}
+      {/* Dense glowing ambient background blobs */}
+      <div className="absolute top-1/4 left-1/4 w-[380px] h-[380px] rounded-full bg-indigo-500/22 blur-[80px]" />
+      <div className="absolute bottom-1/3 right-1/4 w-[420px] h-[420px] rounded-full bg-purple-500/18 blur-[90px]" />
+
+      {/* Brighter glowing grid pattern */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-60"
+        className="absolute inset-0 pointer-events-none opacity-90"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px)
+            linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px)
           `,
           backgroundSize: '56px 56px',
-          maskImage: 'radial-gradient(circle at 50% 50%, black 20%, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(circle at 50% 50%, black 20%, transparent 80%)',
+          maskImage: 'radial-gradient(circle at 50% 50%, black 35%, transparent 85%)',
+          WebkitMaskImage: 'radial-gradient(circle at 50% 50%, black 35%, transparent 85%)',
         }}
       />
+
       {particles.map((p) => (
         <div
           key={p.id}
@@ -134,7 +139,7 @@ export default function AnimatedBackground() {
             width: `${p.size}px`,
             height: `${p.size}px`,
             backgroundColor: p.color,
-            boxShadow: `0 0 6px 1px ${p.colorName === 'white' ? 'rgba(255,255,255,0.4)' : p.color}`,
+            boxShadow: `0 0 12px 3px ${p.colorName === 'white' ? 'rgba(255,255,255,0.5)' : p.color}`,
             animation: `float-particle-${p.id} ${p.duration}s ease-in-out infinite`,
             animationDelay: `${p.delay}s`,
           }}
