@@ -6,7 +6,7 @@
 
 Discover campus activities, create events, connect with students, and explore your campus in real time.
 
-🚀 **Live Demo:** https://YOUR-VERCEL-URL.vercel.app
+🚀 **Live Demo:** https://campuslive-vitap.vercel.app
 
 💻 **GitHub:** https://github.com/souryajeet10/CampusliveVITAP
 
