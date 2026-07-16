@@ -4,15 +4,12 @@ import {
   Copy, 
   Check, 
   Download, 
-  QrCode,
   Shield,
   ArrowRight
 } from 'lucide-react';
-import QRModal from './QRModal';
 
 const CampusIdCard = ({ campusId, name, department, year, onContinue }) => {
   const [copied, setCopied] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -107,23 +104,13 @@ Save this credentials card. You will need your unique Campus ID to access your p
         transition={{ delay: 0.1 }}
         className="space-y-3"
       >
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={handleDownloadTxt}
-            className="h-10 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-850 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-          >
-            <Download className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Download TXT</span>
-          </button>
-          
-          <button
-            onClick={() => setQrOpen(true)}
-            className="h-10 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-850 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-          >
-            <QrCode className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Show QR Code</span>
-          </button>
-        </div>
+        <button
+          onClick={handleDownloadTxt}
+          className="w-full h-10 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-850 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
+        >
+          <Download className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Download TXT Credentials</span>
+        </button>
 
         {onContinue && (
           <button
@@ -136,16 +123,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
         )}
       </motion.div>
 
-      {/* QR overlay modal */}
-      <AnimatePresence>
-        {qrOpen && (
-          <QRModal
-            isOpen={qrOpen}
-            onClose={() => setQrOpen(false)}
-            campusId={campusId}
-          />
-        )}
-      </AnimatePresence>
+
     </div>
   );
 };

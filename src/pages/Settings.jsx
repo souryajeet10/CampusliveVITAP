@@ -6,7 +6,6 @@ import {
   Copy, 
   Check, 
   Download, 
-  QrCode, 
   LogOut, 
   User, 
   Trophy, 
@@ -16,12 +15,10 @@ import {
 } from 'lucide-react';
 import CampusLiveIcon from '../components/common/CampusLiveIcon';
 import { useAuth } from '../hooks/useAuth';
-import QRModal from '../components/QRModal';
 
 const SettingsPage = () => {
   const { currentUser, logout } = useAuth();
   const [copied, setCopied] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
   const navigate = useNavigate();
 
   if (!currentUser) return null;
@@ -143,22 +140,13 @@ Save this credentials card. You will need your unique Campus ID to access your p
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  onClick={handleDownloadTxt}
-                  className="h-10 rounded-xl bg-slate-950/30 hover:bg-slate-900 border border-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-                >
-                  <Download className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Download Credentials Card</span>
-                </button>
-                <button
-                  onClick={() => setQrOpen(true)}
-                  className="h-10 rounded-xl bg-slate-950/30 hover:bg-slate-900 border border-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-                >
-                  <QrCode className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Regenerate QR Code</span>
-                </button>
-              </div>
+              <button
+                onClick={handleDownloadTxt}
+                className="w-full h-10 rounded-xl bg-slate-950/30 hover:bg-slate-900 border border-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
+              >
+                <Download className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Download Credentials Card</span>
+              </button>
             </div>
           </div>
 
@@ -258,16 +246,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
 
       </div>
 
-      {/* QR Modal Overlay */}
-      <AnimatePresence>
-        {qrOpen && (
-          <QRModal
-            isOpen={qrOpen}
-            onClose={() => setQrOpen(false)}
-            campusId={currentUser.id}
-          />
-        )}
-      </AnimatePresence>
+
     </motion.div>
   );
 };
