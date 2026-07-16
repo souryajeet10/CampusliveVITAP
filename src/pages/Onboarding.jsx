@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, 
   ChevronRight, 
   KeyRound, 
   AlertCircle,
   ShieldCheck
 } from 'lucide-react';
+import CampusLiveIcon from '../components/common/CampusLiveIcon';
 import CreateAccountModal from '../components/CreateAccountModal';
 import LoginModal from '../components/LoginModal';
 import CampusIdCard from '../components/CampusIdCard';
@@ -84,12 +84,13 @@ const Onboarding = () => {
           <motion.div 
             initial={{ y: -15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex items-center gap-2 mb-8"
+            className="flex items-center gap-3 mb-8"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-650 flex items-center justify-center shadow-lg shadow-indigo-600/15 border border-indigo-400/20">
-              <Sparkles className="w-5 h-5 text-white" />
+            <CampusLiveIcon className="w-9 h-9" />
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xl font-black text-white tracking-tight">CampusLive</span>
+              <span className="text-sm font-bold tracking-wide text-indigo-400">@VITAP</span>
             </div>
-            <span className="text-xl font-black text-white tracking-wider">CampusLive</span>
           </motion.div>
         )}
 

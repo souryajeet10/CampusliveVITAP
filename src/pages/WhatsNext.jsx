@@ -20,28 +20,31 @@ const roadmapItems = [
   {
     id: 'map',
     title: '🗺️ Improved Campus Map',
-    description: 'Transform the campus map into a smarter navigation and discovery experience. Upcoming features include: building labels, live crowd heatmaps, and indoor navigation.',
+    description: 'Transform traditional static maps into an interactive navigation experience, helping students discover buildings and essential locations with ease.',
     status: 'In Progress',
     color: 'emerald',
     icon: Map,
-    overview: 'Improved Campus Map shifts our Leaflet interface into a layered spatial engine showing building floor plans, active room lines, and live check-in heatmaps.',
-    problem: 'Standard campus maps are static 2D images, lacking building labels, live details, accessibility indices, and floor plans, leading to lost freshmen.',
-    solution: 'A 3D Leaflet-based interactive campus layout containing search tags, room layouts, and live crowd activity indices.',
-    whyBuilding: 'To improve campus navigation and layout accessibility for both new students and visitors.',
+    overview: 'Campus Map transforms traditional static maps into an interactive navigation experience, helping students discover buildings, classrooms, essential facilities, and key campus locations with ease.',
+    problem: 'Traditional campus maps are difficult to navigate, lack interactive information, and make it challenging for students—especially newcomers—to quickly locate buildings, classrooms, and essential campus facilities.',
+    solution: 'An interactive campus mapping system featuring detailed building layouts, searchable locations, smart navigation, and essential campus facility markers in a modern, easy-to-use interface.',
+    whyBuilding: 'To improve campus navigation and layout accessibility for student groups and visitors.',
     benefits: [
-      'Interactive floor selectors displaying classrooms and labs.',
-      'Crowd density mapping showing active zones.',
-      'Location markers for water fountains, restrooms, and accessible routes.'
+      'Quickly locate academic buildings and campus facilities.',
+      'Search and explore important campus locations with ease.',
+      'Access a cleaner, more interactive campus navigation experience.',
+      'Reduce confusion for new students and campus visitors.'
     ],
-    technicalDetails: 'React Leaflet utilizing custom geoJSON polygon coordinates for rooms, combined with crowd density scoring from active checked-in participants.',
+    technicalDetails: 'Built with React Leaflet using custom GeoJSON map data, interactive location markers, and a modular architecture that enables scalable campus visualization and navigation.',
     milestones: [
-      { name: 'Vector layout coordinates mapping', done: true },
-      { name: 'Geofenced room outlines', done: true },
-      { name: 'Live crowd check-in heatmap', done: false },
-      { name: 'Indoor level outlines UI', done: false }
+      { name: 'Campus map foundation', done: true },
+      { name: 'Interactive building markers', done: true },
+      { name: 'GeoJSON campus data integration', done: true },
+      { name: 'Building information panels', done: false },
+      { name: 'Smart location search', done: false },
+      { name: 'Campus facility markers', done: false }
     ],
-    releaseStage: 'Beta release projected for Q3 2026.',
-    futureEnhancements: 'AR navigation overlays showing direct path routes on smartphone cameras.'
+    releaseStage: 'Projected for Q3 2026',
+    futureEnhancements: 'Integrated route finding and accessibility routing paths.'
   },
   {
     id: 'clubs',
@@ -71,54 +74,35 @@ const roadmapItems = [
   },
   {
     id: 'calendar',
-    title: '📅 Smart Calendar',
-    description: 'Sync and view all joined activities, classes, and club community meets in one calendar.',
+    title: '📅 University Calendar',
+    description: 'Centralize official campus events into one interactive calendar, with future support for personal schedules and calendar integration.',
     status: 'Planned',
     color: 'indigo',
     icon: Calendar,
-    overview: 'Smart Calendar pulls all joined activities, class schedules, and club meetups into a single unified workspace to avoid scheduling conflicts.',
-    problem: 'Keeping track of university events, class schedules, and club meetups leads to scheduling conflicts. Students use separate apps for schedules, notice boards, and reminders, leading to missed events.',
-    solution: 'A consolidated, color-coded dashboard calendar that dynamically imports events from Joined Activities, Club Calendars, and academic timetables.',
-    whyBuilding: 'To ensure students have a single source of truth for their daily agenda and can coordinate event attendances effortlessly.',
+    overview: 'University Calendar centralizes official campus events into one interactive calendar, with future support for personal schedules and calendar integration.',
+    problem: 'Students struggle to keep track of academic schedules, notice boards, club meets, and university events across separate messaging channels and apps, leading to scheduling conflicts and missed activities.',
+    solution: 'A centralized university calendar interface listing official campus events, with robust future planning for personal scheduling and seamless external integrations.',
+    whyBuilding: 'To consolidate campus event tracking and lay the foundation for complete student scheduling management.',
     benefits: [
-      'Automatic conflict indicators when joined activities overlap.',
-      'One-click synchronization with Google Calendar and Apple Calendar.',
-      'Time-blocking suggestions based on academic schedules.'
+      'Personal calendar support',
+      'Google Calendar synchronization',
+      'Smart event reminders',
+      'Personalized event recommendations',
+      'Academic schedule integration'
     ],
-    technicalDetails: 'iCal parser running in Firebase Cloud Functions, indexing event timetables client-side with React local storage caching to maintain fast performance.',
+    technicalDetails: 'Built with responsive grid interfaces mapping event database schemas to standard RFC-5545 iCalendar protocols.',
     milestones: [
-      { name: 'Calendar interface UI', done: false },
-      { name: 'iCal sync integration', done: false },
-      { name: 'Direct Google Cal exporter', done: false }
+      { name: 'Calendar interface design', done: true },
+      { name: 'University event integration', done: false },
+      { name: 'Event categorization', done: false },
+      { name: 'Monthly & weekly calendar views', done: false },
+      { name: 'Event detail pages', done: false },
+      { name: 'Event reminders', done: false }
     ],
-    releaseStage: 'Core calendar planning scheduled for Q4 2026.',
-    futureEnhancements: 'Integration with campus class schedules for automatic lecture time-blocking.'
+    releaseStage: 'Future Vision',
+    futureEnhancements: 'Expand the University Calendar with personal scheduling, calendar synchronization, and personalized planning tools.'
   },
-  {
-    id: 'mobile',
-    title: '📱 Mobile App',
-    description: 'Native Android and iOS applications with widgets and fast location sync.',
-    status: 'Planned',
-    color: 'indigo',
-    icon: Rocket,
-    overview: 'Mobile App delivers native Android and iOS client implementations containing geofenced notification controllers and lock screen shortcuts.',
-    problem: 'Accessing the platform through a mobile browser when running between campus halls is slow, lacks background GPS tracking, and prevents instant real-time alerts.',
-    solution: 'A native React Native application optimized for mobile viewports, featuring geofenced alerts and home screen widgets showing ongoing campus events.',
-    whyBuilding: 'To offer high-fidelity geographical features like push alerts and campus navigation on-the-go.',
-    benefits: [
-      'Lock screen widgets showing current active events.',
-      'Background GPS tracking for nearby safety alerts.',
-      'Offline maps cache support for fast loading in low connectivity zones.'
-    ],
-    technicalDetails: 'Built on React Native and Expo, utilizing native MapKit (iOS) and Google Maps SDK (Android) modules via shared Firestore APIs.',
-    milestones: [
-      { name: 'Wireframing & UI design', done: false },
-      { name: 'GPS geofencing test run', done: false },
-      { name: 'Beta app store release', done: false }
-    ],
-    releaseStage: 'Alpha release projected for Q1 2027.',
-    futureEnhancements: 'Support for WearOS and Apple Watch updates for instant check-in ticket scans.'
-  },
+
   {
     id: 'push',
     title: '🔔 Push Notifications',

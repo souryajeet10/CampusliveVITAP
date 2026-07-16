@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import CampusLiveIcon from '../common/CampusLiveIcon';
 
 const LOGO_EASE = [0.22, 1, 0.36, 1];
 
@@ -28,8 +28,8 @@ const CampusLiveLogo = memo(function CampusLiveLogo() {
         }}
       >
         <motion.div
-          className="absolute inset-0 rounded-2xl blur-2xl"
-          style={{ background: 'rgba(59, 130, 246, 0.45)' }}
+          className="absolute inset-0 rounded-2xl blur-3xl"
+          style={{ background: 'rgba(99, 102, 241, 0.25)' }}
           animate={
             reduceMotion
               ? { opacity: 0.5 }
@@ -38,8 +38,8 @@ const CampusLiveLogo = memo(function CampusLiveLogo() {
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         />
 
-        <div className="relative w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-blue-500/30 border border-blue-400/25">
-          <Sparkles className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" strokeWidth={1.75} />
+        <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center">
+          <CampusLiveIcon className="w-full h-full" />
         </div>
       </motion.div>
 
@@ -63,7 +63,7 @@ const CampusLiveLogo = memo(function CampusLiveLogo() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.45, ease: LOGO_EASE }}
       >
-        Building the Social Layer of Every Campus
+        Campus Social Platform
       </motion.p>
     </motion.div>
   );

@@ -9,7 +9,8 @@ import {
   orderBy,
   where,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 
@@ -91,6 +92,26 @@ export const subscribeActivePins = (onUpdate, onError) => {
 };
 
 /**
+ * Subscribes to the count of resolved pins.
+ * @param {function} onUpdate - Callback with the count
+ * @returns {function} Unsubscribe function
+ */
+export const subscribeResolvedCount = (onUpdate) => {
+  const pinsCol = collection(db, COLLECTION_NAME);
+  const q = query(pinsCol, where('resolved', '==', true));
+  
+  return onSnapshot(
+    q,
+    (querySnapshot) => {
+      onUpdate(querySnapshot.size);
+    },
+    (error) => {
+      console.error('Error fetching resolved pins count:', error);
+    }
+  );
+};
+
+/**
  * Marks a pin as resolved.
  * @param {string} id - The pin document ID
  */
@@ -117,6 +138,23 @@ export const deletePin = async (id) => {
     await deleteDoc(docRef);
   } catch (error) {
     console.error(`Error deleting pin ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes all pins from Firestore to reset the database.
+ */
+export const resetLostFoundDatabase = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+    const promises = [];
+    querySnapshot.forEach((document) => {
+      promises.push(deleteDoc(doc(db, COLLECTION_NAME, document.id)));
+    });
+    await Promise.all(promises);
+  } catch (error) {
+    console.error('Error resetting database:', error);
     throw error;
   }
 };

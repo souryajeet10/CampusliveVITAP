@@ -22,10 +22,10 @@ import {
 } from 'lucide-react';
 import { VIT_AP_CENTER, VIT_AP_BOUNDS } from '../utils/constants';
 import { useLostFoundPins } from '../hooks/useLostFoundPins';
-import { addLostFoundPin, resolvePin } from '../services/lostFoundService';
+import { addLostFoundPin, resolvePin, subscribeResolvedCount } from '../services/lostFoundService';
 import { getRelativeTime, getRemainingTime } from '../utils/time';
 import { LostFoundModal } from '../components/LostFoundModal';
-import { LostFoundConfirmModal } from '../components/LostFoundConfirmModal';
+
 
 // Reusable Close Popup component inside React Leaflet Popups
 const PopupCloseButton = () => {
@@ -154,6 +154,31 @@ const ItemListItem = memo(({ pin, onSelect }) => {
 
 ItemListItem.displayName = 'ItemListItem';
 
+const AnimatedCounter = ({ value }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    const startVal = displayValue;
+    const endVal = Number(value) || 0;
+    const duration = 500;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      const currentVal = Math.floor(progress * (endVal - startVal) + startVal);
+      setDisplayValue(currentVal);
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+
+    window.requestAnimationFrame(step);
+  }, [value]);
+
+  return <span className="tabular-nums">{displayValue}</span>;
+};
+
 const LostFound = () => {
   const location = useLocation();
   const [filterType, setFilterType] = useState('All');
@@ -168,7 +193,6 @@ const LostFound = () => {
 
   // Creation form states
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [placementMode, setPlacementMode] = useState(false);
 
   const [type, setType] = useState('lost');
@@ -179,6 +203,17 @@ const LostFound = () => {
   // Status indicators
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [resolvedCount, setResolvedCount] = useState(0);
+
+  // Subscribe to resolved pins count
+  useEffect(() => {
+    const unsub = subscribeResolvedCount((count) => {
+      setResolvedCount(count);
+    });
+    return () => unsub();
+  }, []);
+
+
 
   // Real-time custom hook subscription
   const { pins, clusteredPins, loading, error } = useLostFoundPins(
@@ -230,7 +265,8 @@ const LostFound = () => {
 
   const handleMapClick = useCallback((latlng) => {
     setTempCoords([latlng.lat, latlng.lng]);
-    setIsConfirmOpen(true);
+    setPlacementMode(false);
+    setIsFormOpen(true);
   }, []);
 
   const handleConfirmPlacement = async () => {
@@ -252,18 +288,12 @@ const LostFound = () => {
       setDescription('');
       setTempCoords(null);
       setPlacementMode(false);
-      setIsConfirmOpen(false);
+      setIsFormOpen(false);
     } catch (err) {
       showToast('Failed to post pin.', 'error');
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleCancelConfirm = () => {
-    setIsConfirmOpen(false);
-    setIsFormOpen(true);
-    setPlacementMode(false);
   };
 
   const handleSelectPin = (pin) => {
@@ -315,6 +345,29 @@ const LostFound = () => {
         )}
       </AnimatePresence>
 
+      {/* Stats Cards Row */}
+      <div className="grid grid-cols-2 gap-4 w-full sm:max-w-md flex-shrink-0 select-none">
+        {[
+          { label: 'Active Reports', value: pins.length, icon: AlertTriangle, color: 'text-amber-400 bg-amber-500/5 border-amber-500/10' },
+          { label: 'Resolved Items', value: resolvedCount, icon: CheckCircle2, color: 'text-emerald-450 bg-emerald-500/5 border-emerald-500/10' }
+        ].map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <div key={idx} className={`p-3.5 rounded-2xl border ${item.color} flex items-center justify-between`}>
+              <div className="text-left">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">{item.label}</span>
+                <p className="text-xl font-black text-white mt-1.5 leading-none">
+                  <AnimatedCounter value={item.value} />
+                </p>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-center">
+                <Icon className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Mobile Tab Selector */}
       <div className="flex md:hidden bg-slate-950/60 p-1 rounded-xl border border-slate-900/60 w-full flex-shrink-0 select-none">
         <button
@@ -348,9 +401,17 @@ const LostFound = () => {
           ${mobileView === 'list' ? 'flex' : 'hidden md:flex'}`}>
           
           <div className="space-y-4 mb-4 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Inbox className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Lost & Found</h3>
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2">
+                <Inbox className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Lost & Found</h3>
+              </div>
+              {resolvedCount > 0 && (
+                <div className="flex items-center gap-1 text-[9px] font-extrabold text-emerald-450 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full select-none" title="Total resolved items by the community">
+                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-450" />
+                  <span>{resolvedCount} Resolved</span>
+                </div>
+              )}
             </div>
 
             {/* Search Input */}
@@ -551,7 +612,7 @@ const LostFound = () => {
 
           {/* Floating Action Button (FAB) inside Map Workspace */}
           <button
-            onClick={() => setIsFormOpen(true)}
+            onClick={startPlacementFlow}
             className="absolute bottom-16 left-5 h-10 px-4 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white flex items-center gap-2 shadow-2xl shadow-indigo-600/20 border border-indigo-400/20 active:scale-95 transition-all z-20 cursor-pointer text-xs font-bold"
             title="Report Lost or Found Item"
           >
@@ -565,22 +626,17 @@ const LostFound = () => {
       {/* Forms and confirm modals */}
       <LostFoundModal
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setTempCoords(null);
+        }}
         type={type}
         setType={setType}
         title={title}
         setTitle={setTitle}
         description={description}
         setDescription={setDescription}
-        onChooseLocation={startPlacementFlow}
-      />
-
-      <LostFoundConfirmModal
-        isOpen={isConfirmOpen}
-        onClose={handleCancelConfirm}
-        onConfirm={handleConfirmPlacement}
-        type={type}
-        title={title}
+        onSubmit={handleConfirmPlacement}
         coordinates={tempCoords}
         isSaving={isSaving}
       />

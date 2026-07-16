@@ -5,13 +5,13 @@ import {
   Calendar, 
   MapPin, 
   Settings, 
-  ChevronLeft, 
   ChevronRight, 
   LogOut,
   Sparkles,
   Inbox
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import CampusLiveIcon from './common/CampusLiveIcon';
 
 const sections = [
   {
@@ -63,12 +63,26 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       {/* Subtle noise texture overlay */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }} />
 
+      {/* Collapse toggle — floating absolute button */}
+      {!mobileOpen && (
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden md:flex items-center justify-center w-6 h-6 rounded-full border border-slate-700/60 bg-[#0B1220] hover:bg-[#151c2c] text-slate-400 hover:text-white transition-all duration-200 absolute -right-3 top-7.5 z-30 shadow-lg cursor-pointer hover:border-indigo-500/50 hover:ring-4 hover:ring-indigo-500/10 active:scale-90"
+        >
+          <motion.div
+            animate={{ rotate: isCollapsed ? 0 : 180 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center justify-center"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </motion.div>
+        </button>
+      )}
+
       {/* ─── Brand Header ─── */}
-      <div className="relative z-10 flex items-center justify-between px-5 pt-6 pb-5">
+      <div className={`relative z-10 flex items-center pt-6 pb-5 ${expanded ? 'justify-between px-5' : 'justify-center px-0'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 flex-shrink-0 ring-1 ring-white/10">
-            <Sparkles className="w-4.5 h-4.5 text-white drop-shadow-sm" strokeWidth={2} />
-          </div>
+          <CampusLiveIcon className={`${expanded ? 'w-9 h-9' : 'w-10 h-10'} flex-shrink-0`} />
           {expanded && (
             <motion.div
               initial={{ opacity: 0, x: -8 }}
@@ -91,16 +105,6 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
             </motion.div>
           )}
         </div>
-
-        {/* Collapse toggle — circular ghost button */}
-        {!mobileOpen && (
-          <button 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:flex items-center justify-center w-7 h-7 rounded-full border border-slate-700/50 bg-transparent hover:bg-slate-800/60 text-slate-500 hover:text-white transition-all duration-250 flex-shrink-0"
-          >
-            {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-          </button>
-        )}
       </div>
 
       {/* ─── Navigation ─── */}
@@ -124,7 +128,11 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                     key={item.name} 
                     to={item.path} 
                     className={({ isActive }) => `
-                      flex items-center gap-3 px-3 py-2.5 rounded-[14px] transition-all duration-250 group relative overflow-hidden
+                      flex items-center transition-all duration-250 group relative overflow-hidden
+                      ${expanded 
+                        ? 'w-full gap-3 px-3 py-2.5 rounded-[14px]' 
+                        : 'w-11 h-11 justify-center rounded-xl mx-auto'
+                      }
                       ${isActive 
                         ? 'bg-white/[0.06] backdrop-blur-sm text-white font-semibold shadow-[0_0_24px_rgba(99,102,241,0.08)]' 
                         : 'text-slate-400 hover:text-white hover:bg-white/[0.03] hover:-translate-y-px'
@@ -181,8 +189,12 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       </nav>
 
       {/* ─── Bottom User Profile Card ─── */}
-      <div className="relative z-10 p-3 border-t border-[#1E293B]">
-        <div className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.04] transition-all duration-250 group">
+      <div className={`relative z-10 border-t border-[#1E293B] ${expanded ? 'p-3' : 'py-4 px-0 flex justify-center'}`}>
+        <div className={`flex items-center transition-all duration-250 group ${
+          expanded 
+            ? 'p-2.5 rounded-xl hover:bg-white/[0.04] gap-3' 
+            : 'w-11 h-11 justify-center rounded-xl hover:bg-white/[0.04]'
+        }`}>
           {/* Avatar */}
           <div className="relative flex-shrink-0 cursor-pointer" onClick={handleProfileClick}>
             <img 
@@ -203,11 +215,11 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                 onClick={handleProfileClick}
               >
                 <p className="text-[13px] font-semibold text-white truncate flex items-center gap-1">
-                <span>{currentUser?.name || 'Aarav Sharma'}</span>
-                {currentUser?.role === 'supreme_admin' && (
-                  <span title="Supreme Admin" className="text-amber-400 shrink-0 text-xs">👑</span>
-                )}
-              </p>
+                  <span>{currentUser?.name || 'Aarav Sharma'}</span>
+                  {currentUser?.role === 'supreme_admin' && (
+                    <span title="Supreme Admin" className="text-amber-400 shrink-0 text-xs">👑</span>
+                  )}
+                </p>
                 <p className="text-[10px] text-slate-500 truncate font-medium">
                   {getAbbreviatedDept(currentUser?.department)} · @VITAP
                 </p>
@@ -225,22 +237,12 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
         </div>
         
         {/* Subtle Version Indicator */}
-        <div className={`mt-3 pt-1 select-none flex flex-col transition-all duration-200 text-left ${expanded ? 'items-start pl-[58px]' : 'items-center group relative cursor-default'}`}>
-          {expanded ? (
-            <>
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-none">CAMPUSLIVE</span>
-              <span className="text-[11px] font-semibold text-slate-400 mt-1.5 leading-none whitespace-nowrap">v0.9.0 • Public Preview</span>
-            </>
-          ) : (
-            <>
-              <span className="text-[9px] font-bold text-slate-500 tracking-wide">v0.9.0</span>
-              {/* Tooltip for collapsed version indicator */}
-              <div className="absolute left-[54px] scale-0 group-hover:scale-100 transition-all duration-150 origin-left z-50 bg-[#0F172A] border border-slate-700/60 text-slate-200 text-[10px] px-2.5 py-1.5 rounded-lg font-semibold shadow-2xl pointer-events-none whitespace-nowrap">
-                CampusLive v0.9.0 • Public Preview
-              </div>
-            </>
-          )}
-        </div>
+        {expanded && (
+          <div className="mt-3 pt-1 select-none flex flex-col transition-all duration-200 text-left items-start pl-[58px]">
+            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-none">CAMPUSLIVE</span>
+            <span className="text-[11px] font-semibold text-slate-400 mt-1.5 leading-none whitespace-nowrap">v0.9.0 • Public Preview</span>
+          </div>
+        )}
       </div>
     </div>
   );

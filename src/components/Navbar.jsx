@@ -1,5 +1,8 @@
-import { useLocation } from 'react-router-dom';
-import { Menu, Search, ShieldAlert, Sparkles, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Menu, Clock } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import CampusLiveIcon from './common/CampusLiveIcon';
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
@@ -12,16 +15,28 @@ const PAGE_TITLES = {
 
 const Navbar = ({ setMobileOpen }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  
   const pageTitle = PAGE_TITLES[location.pathname] || 'Dashboard';
 
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  // Live updating clock state
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000 * 30); // Update time state every 30 seconds
+    return () => clearInterval(timer);
+  }, []);
+
+  const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dateStr = time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 sm:px-6 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900 font-sans">
       {/* Left section */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-3 flex-1 min-w-0 relative">
         {/* Mobile: Hamburger */}
         <button
           onClick={() => setMobileOpen(true)}
@@ -30,42 +45,58 @@ const Navbar = ({ setMobileOpen }) => {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Mobile Brand */}
-        <div className="flex items-center gap-2 md:hidden min-w-0">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm shadow-indigo-500/10 flex-shrink-0">
-            <Sparkles className="w-3 h-3 text-white" />
-          </div>
-          <div className="flex items-baseline gap-1 min-w-0">
-            <span className="text-sm font-bold tracking-wide text-white truncate">CampusLive</span>
-            <span className="text-[9px] font-semibold tracking-wider text-indigo-400/85 flex-shrink-0">@VITAP</span>
-          </div>
+        {/* Mobile Brand Icon (Left side) */}
+        <div className="flex items-center gap-2 md:hidden">
+          <CampusLiveIcon className="w-6 h-6 flex-shrink-0" />
         </div>
 
-        {/* Desktop: Branding + time */}
-        <div className="hidden md:flex items-center gap-3">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-bold text-white tracking-tight">CampusLive</span>
-            <span className="text-sm font-bold tracking-wide text-indigo-400 hover:text-indigo-300 hover:drop-shadow-[0_0_8px_rgba(129,140,248,0.5)] transition-all duration-300 cursor-default">@VITAP</span>
-          </div>
+        {/* Mobile Centered Page Title or Brand */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 md:hidden text-xs font-bold tracking-wider text-white uppercase whitespace-nowrap">
+          {location.pathname === '/' ? (
+            <span className="normal-case font-black tracking-normal text-sm">
+              CampusLive <span className="text-indigo-400 font-extrabold text-[10px]">@VITAP</span>
+            </span>
+          ) : (
+            pageTitle
+          )}
+        </div>
+
+        {/* Desktop: Page Title or Brand + Time */}
+        <div className="hidden md:flex items-center gap-3.5">
+          {location.pathname === '/' ? (
+            <div className="flex items-baseline gap-1.5 leading-none">
+              <span className="text-sm font-bold text-white tracking-tight">CampusLive</span>
+              <span className="text-sm font-bold tracking-wide text-indigo-400 hover:text-indigo-300 hover:drop-shadow-[0_0_8px_rgba(129,140,248,0.5)] transition-all duration-300 cursor-default">@VITAP</span>
+            </div>
+          ) : (
+            <h2 className="text-sm font-black text-white tracking-tight leading-none">{pageTitle}</h2>
+          )}
           <div className="h-4 w-px bg-slate-800" />
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-medium">
-            <Clock className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold leading-none mt-0.5">
+            <Clock className="w-3 h-3 text-slate-500" />
             <span>{dateStr}</span>
-            <span className="text-gray-700">·</span>
-            <span className="text-slate-400 font-semibold tabular-nums">{timeStr}</span>
+            <span className="text-slate-700">·</span>
+            <span className="text-slate-400 font-bold tabular-nums">{timeStr}</span>
           </div>
         </div>
       </div>
 
       {/* Right section */}
-      <div className="flex items-center gap-2.5">
-
-
-
-        {/* Mobile Search */}
-        <button className="md:hidden p-2 rounded-lg bg-slate-950/40 border border-slate-900 text-gray-500 hover:text-white hover:bg-slate-900/60 transition-colors">
-          <Search className="w-4 h-4" />
-        </button>
+      <div className="flex items-center gap-3">
+        {/* Desktop Profile Quick-View */}
+        {currentUser && (
+          <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
+            <div className="text-right leading-none">
+              <p className="text-[11px] font-bold text-white">{currentUser.name}</p>
+            </div>
+            <img
+              src={currentUser.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=Aarav"}
+              alt={currentUser.name}
+              className="w-8 h-8 rounded-full border border-slate-900 bg-slate-950 object-cover ring-2 ring-indigo-500/10 cursor-pointer hover:ring-indigo-500/25 transition-all"
+              onClick={() => navigate('/settings')}
+            />
+          </div>
+        )}
       </div>
     </header>
   );

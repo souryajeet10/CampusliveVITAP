@@ -1,5 +1,24 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, HelpCircle, MapPin, AlertTriangle } from 'lucide-react';
+import { X, HelpCircle, MapPin, AlertTriangle, Plus } from 'lucide-react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+
+// Helper to determine approximate building name based on coordinates
+const getBuildingName = (coords) => {
+  if (!coords) return 'Unknown Location';
+  const [lat, lng] = coords;
+  // A simple mockup of coordinate-to-building mapping
+  if (lat > 16.5065 && lat < 16.5075 && lng > 80.5230 && lng < 80.5245) {
+    return 'SRK Block (Block A)';
+  }
+  if (lat > 16.5055 && lat < 16.5065 && lng > 80.5220 && lng < 80.5235) {
+    return 'Dr. S. Radhakrishnan Block (Block B)';
+  }
+  if (lat > 16.5075 && lat < 16.5085 && lng > 80.5240 && lng < 80.5255) {
+    return 'APJ Abdul Kalam Block (Block C)';
+  }
+  return 'Campus Commons';
+};
 
 /**
  * Modal to enter details for creating a new Lost or Found item.
@@ -13,51 +32,98 @@ export const LostFoundModal = ({
   setTitle,
   description,
   setDescription,
-  onChooseLocation
+  onSubmit,
+  coordinates,
+  isSaving,
+  onChangeLocation
 }) => {
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) return;
-    onChooseLocation();
+    if (!title.trim() || !description.trim() || !coordinates) return;
+    onSubmit();
   };
+
+  const building = getBuildingName(coordinates);
+
+  const miniMapIcon = L.divIcon({
+    className: '',
+    html: `<div class="w-4 h-4 rounded-full bg-indigo-500 border border-white animate-pulse" />`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-        />
-
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto bg-black/75 backdrop-blur-sm">
         {/* Modal Window */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-800 bg-[#0b0f19] p-6 shadow-2xl z-10"
+          transition={{ duration: 0.2 }}
+          className="w-full max-w-md bg-[#0b0f19]/95 border border-slate-900 rounded-2xl shadow-2xl overflow-hidden my-8"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-900">
-            <div className="flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-indigo-400" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Report Lost/Found Item</h3>
-            </div>
+          {/* Top Preview Banner with Mini Map */}
+          <div className="relative h-44 w-full bg-slate-950 border-b border-slate-900 overflow-hidden">
+            {coordinates ? (
+              <div className="w-full h-full relative z-0">
+                <MapContainer
+                  center={coordinates}
+                  zoom={17}
+                  zoomControl={false}
+                  attributionControl={false}
+                  dragging={false}
+                  doubleClickZoom={false}
+                  scrollWheelZoom={false}
+                  className="w-full h-full z-0 mini-map-preview"
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker position={coordinates} icon={miniMapIcon} />
+                </MapContainer>
+                {/* Glass overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-transparent to-black/35 z-10 pointer-events-none" />
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 z-0">
+                <MapPin className="w-8 h-8 mb-2 text-gray-600" />
+                <p className="text-xs">No location selected</p>
+              </div>
+            )}
+
+            {/* Close Button */}
             <button
+              type="button"
               onClick={onClose}
-              className="p-1 rounded-lg text-gray-500 hover:text-white hover:bg-slate-900 transition-colors"
+              className="absolute top-3 right-3 z-30 p-1.5 rounded-full bg-black/45 backdrop-blur-md text-gray-400 hover:text-white transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
+
+            {/* Selection Details Overlay */}
+            <div className="absolute bottom-3 left-4 right-4 z-20 flex justify-between items-end">
+              <div className="text-left">
+                <span className="text-[8.5px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
+                  Selected Location
+                </span>
+                <h4 className="text-sm font-black text-white mt-1 leading-tight">{building}</h4>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  {coordinates ? `${coordinates[0].toFixed(5)}, ${coordinates[1].toFixed(5)}` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onChangeLocation}
+                className="px-2.5 py-1 rounded bg-[#0b0f19]/80 border border-slate-800 text-[10px] font-bold text-indigo-400 hover:text-white transition-all backdrop-blur-md cursor-pointer"
+              >
+                Change Location
+              </button>
+            </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4 text-left">
+          <form onSubmit={handleSubmit} className="p-5 space-y-4 text-left text-xs">
             {/* Type Selector */}
             <div className="space-y-1">
               <label className="block text-gray-500 font-bold uppercase tracking-wider text-[9px]">
@@ -132,7 +198,7 @@ export const LostFoundModal = ({
             <div className="flex gap-2 p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/10 text-[10px] text-indigo-400">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <p className="leading-relaxed">
-                Pins expire automatically after <strong>48 hours</strong> if not resolved. Choose a highly accurate spot on the map next.
+                Pins expire automatically after <strong>48 hours</strong> if not resolved.
               </p>
             </div>
 
@@ -147,11 +213,11 @@ export const LostFoundModal = ({
               </button>
               <button
                 type="submit"
-                disabled={!title.trim() || !description.trim()}
+                disabled={!title.trim() || !description.trim() || !coordinates || isSaving}
                 className="h-10 px-4 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>Choose Location</span>
+                <Plus className="w-3.5 h-3.5" />
+                <span>{isSaving ? 'Saving...' : 'Post Pin'}</span>
               </button>
             </div>
           </form>
