@@ -302,7 +302,7 @@ const CampusMap = () => {
   // Join loader and user variables
   const [joiningId, setJoiningId] = useState(null);
   const { currentUser } = useAuth();
-  const currentUserId = currentUser?.id || 'aarav_sharma_uid';
+  const currentUserId = currentUser?.id || '';
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });

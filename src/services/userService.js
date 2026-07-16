@@ -20,19 +20,3 @@ export const updateUserProfile = async (campusId, updates) => {
   const docRef = doc(db, 'users', campusId);
   await updateDoc(docRef, updates);
 };
-
-/**
- * Updates a user's online status and lastSeen fields.
- */
-export const updateUserOnlineStatus = async (campusId, online) => {
-  if (!campusId) return;
-  const docRef = doc(db, 'users', campusId);
-  try {
-    await updateDoc(docRef, {
-      online: online,
-      lastSeen: serverTimestamp()
-    });
-  } catch (error) {
-    console.error(`Failed to update online status to ${online} for ${campusId}:`, error);
-  }
-};

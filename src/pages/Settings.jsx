@@ -86,7 +86,6 @@ Save this credentials card. You will need your unique Campus ID to access your p
                 alt={currentUser.name} 
                 className="w-20 h-20 rounded-2xl bg-slate-900 border border-slate-800 p-1 object-cover"
               />
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-4 ring-[#080b11]"></span>
             </div>
             
             <h2 className="text-base font-bold text-white truncate w-full flex items-center justify-center gap-1">
@@ -229,7 +228,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
               </div>
               <div className="space-y-1">
                 <p className="text-[9px] text-gray-550 uppercase tracking-wider">Version</p>
-                <p className="text-slate-200 font-bold">v0.9.0 "Public Preview"</p>
+                <p className="text-slate-200 font-bold">v0.9.5 "Preview Release"</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[9px] text-gray-550 uppercase tracking-wider">Environment</p>

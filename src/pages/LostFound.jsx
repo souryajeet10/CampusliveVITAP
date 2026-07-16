@@ -223,7 +223,7 @@ const LostFound = () => {
   );
 
   const { currentUser } = useAuth();
-  const currentUserId = currentUser?.id || 'aarav_sharma_uid';
+  const currentUserId = currentUser?.id || '';
 
   useEffect(() => {
     if (location.search.includes('create=true')) {

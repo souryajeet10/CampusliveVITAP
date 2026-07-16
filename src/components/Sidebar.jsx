@@ -195,14 +195,12 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
             ? 'p-2.5 rounded-xl hover:bg-white/[0.04] gap-3' 
             : 'w-11 h-11 justify-center rounded-xl hover:bg-white/[0.04]'
         }`}>
-          {/* Avatar */}
           <div className="relative flex-shrink-0 cursor-pointer" onClick={handleProfileClick}>
             <img 
               src={currentUser?.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=Aarav"} 
               alt={currentUser?.name || "User Avatar"} 
               className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/15 bg-slate-800"
             />
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-[2.5px] ring-[#0B1220]" />
           </div>
 
           {expanded && (
@@ -240,7 +238,7 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
         {expanded && (
           <div className="mt-3 pt-1 select-none flex flex-col transition-all duration-200 text-left items-start pl-[58px]">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-none">CAMPUSLIVE</span>
-            <span className="text-[11px] font-semibold text-slate-400 mt-1.5 leading-none whitespace-nowrap">v0.9.0 • Public Preview</span>
+            <span className="text-[11px] font-semibold text-slate-400 mt-1.5 leading-none whitespace-nowrap">v0.9.5 • Preview Release</span>
           </div>
         )}
       </div>

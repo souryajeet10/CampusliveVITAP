@@ -34,7 +34,7 @@ export const addLostFoundPin = async (pinData) => {
       longitude: Number(pinData.longitude),
       createdAt: serverTimestamp(),
       expiresAt: Timestamp.fromDate(expiresAt),
-      createdBy: pinData.createdBy || 'aarav_sharma_uid',
+      createdBy: pinData.createdBy || '',
       resolved: false
     });
     return docRef.id;

@@ -5,8 +5,7 @@ import {
   validateCampusIdFormat 
 } from '../services/authService';
 import { 
-  getUserProfile, 
-  updateUserOnlineStatus 
+  getUserProfile
 } from '../services/userService';
 
 export const AuthContext = createContext(null);
@@ -42,8 +41,6 @@ export const AuthProvider = ({ children }) => {
         if (profile) {
           if (active) {
             setCurrentUser({ id: campusId, ...profile });
-            // Set online to true in firestore
-            await updateUserOnlineStatus(campusId, true);
           }
         } else {
           // Document not found in Firestore (possibly deleted or corrupted)
@@ -72,35 +69,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, [campusId]);
 
-  // Handle online/offline tab events
-  useEffect(() => {
-    if (!currentUser || !currentUser.id) return;
-    const currentId = currentUser.id;
 
-    // Set online on load / visibility change
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        updateUserOnlineStatus(currentId, true);
-      } else {
-        updateUserOnlineStatus(currentId, false);
-      }
-    };
-
-    const handleBeforeUnload = () => {
-      // Synchronous style firestore check or quick background status change
-      updateUserOnlineStatus(currentId, false);
-    };
-
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      // Set online status to false on clean unmount
-      updateUserOnlineStatus(currentId, false);
-    };
-  }, [currentUser]);
 
   // Login handler
   const login = useCallback(async (idToLogin) => {
@@ -116,7 +85,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(STORAGE_KEY, formattedId);
       setCampusId(formattedId);
       setCurrentUser({ id: formattedId, ...profileData });
-      await updateUserOnlineStatus(formattedId, true);
       return { id: formattedId, ...profileData };
     } catch (err) {
       setError(err.message);
@@ -144,15 +112,11 @@ export const AuthProvider = ({ children }) => {
 
   // Logout handler
   const logout = useCallback(async () => {
-    if (currentUser && currentUser.id) {
-      // Set online to false before clearing
-      await updateUserOnlineStatus(currentUser.id, false);
-    }
     localStorage.removeItem(STORAGE_KEY);
     setCampusId(null);
     setCurrentUser(null);
     setError(null);
-  }, [currentUser]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{
