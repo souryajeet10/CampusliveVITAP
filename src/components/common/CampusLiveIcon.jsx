@@ -3,11 +3,12 @@ import React from 'react';
 const CampusLiveIcon = ({ className = 'w-9 h-9', variant = 'glow', ...props }) => {
   const isGlow = variant === 'glow';
   const isMonochrome = variant === 'monochrome';
+  const isSolid = variant === 'solid';
   
   // Choose stroke & fill colors
-  const chaliceStroke = isMonochrome ? 'currentColor' : 'url(#chalice-grad)';
-  const hexStroke = isMonochrome ? 'currentColor' : 'url(#hex-grad)';
-  const lineStroke = isMonochrome ? 'currentColor' : 'url(#line-grad)';
+  const chaliceStroke = isMonochrome ? 'currentColor' : (isSolid ? '#6366f1' : 'url(#chalice-grad)');
+  const hexStroke = isMonochrome ? 'currentColor' : (isSolid ? '#22d3ee' : 'url(#hex-grad)');
+  const lineStroke = isMonochrome ? 'currentColor' : (isSolid ? '#22d3ee' : 'url(#line-grad)');
   const nodeFill = isMonochrome ? 'currentColor' : '#22d3ee';
 
   return (
@@ -22,7 +23,7 @@ const CampusLiveIcon = ({ className = 'w-9 h-9', variant = 'glow', ...props }) =
         <defs>
           {/* Glow filter */}
           <filter id="logo-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feGaussianBlur stdDeviation="1.2" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -31,7 +32,7 @@ const CampusLiveIcon = ({ className = 'w-9 h-9', variant = 'glow', ...props }) =
 
           {/* Outer Glow filter for nodes */}
           <filter id="logo-node-glow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="1.2" result="blur" />
+            <feGaussianBlur stdDeviation="0.6" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />

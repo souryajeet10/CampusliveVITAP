@@ -39,7 +39,7 @@ const CampusLiveLogo = memo(function CampusLiveLogo() {
         />
 
         <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center">
-          <CampusLiveIcon className="w-full h-full" />
+          <CampusLiveIcon className="w-full h-full" variant="solid" />
         </div>
       </motion.div>
 

@@ -82,7 +82,7 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       {/* ─── Brand Header ─── */}
       <div className={`relative z-10 flex items-center pt-6 pb-5 ${expanded ? 'justify-between px-5' : 'justify-center px-0'}`}>
         <div className="flex items-center gap-3">
-          <CampusLiveIcon className={`${expanded ? 'w-9 h-9' : 'w-10 h-10'} flex-shrink-0`} />
+          <CampusLiveIcon className={`${expanded ? 'w-9 h-9' : 'w-10 h-10'} flex-shrink-0`} variant="solid" />
           {expanded && (
             <motion.div
               initial={{ opacity: 0, x: -8 }}

@@ -89,7 +89,7 @@ const LoginModal = ({ onLogin, onBack, onError }) => {
             />
           </div>
           <p className="text-[9px] text-gray-650 leading-relaxed pl-1 pt-1 font-medium">
-            Format: VITAP-XXXXXX (or old CL-XXXX-XXXX)
+            Format: VITAP-XXXXXX
           </p>
         </div>
 

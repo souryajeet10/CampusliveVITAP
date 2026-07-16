@@ -84,12 +84,12 @@ const Onboarding = () => {
           <motion.div 
             initial={{ y: -15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex items-center gap-3 mb-8"
+            className="flex items-center gap-3.5 mb-8"
           >
-            <CampusLiveIcon className="w-9 h-9" />
+            <CampusLiveIcon className="w-11 h-11" variant="solid" />
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-black text-white tracking-tight">CampusLive</span>
-              <span className="text-sm font-bold tracking-wide text-indigo-400">@VITAP</span>
+              <span className="text-2xl font-black text-white tracking-tight">CampusLive</span>
+              <span className="text-base font-bold tracking-wide text-indigo-400">@VITAP</span>
             </div>
           </motion.div>
         )}
@@ -106,10 +106,10 @@ const Onboarding = () => {
             >
               <div className="space-y-3">
                 <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                  The Social Layer of Every Campus
+                  Everything Happening at VIT-AP, Live.
                 </h1>
-                <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-                  Discover live activities, find club communities, and connect with students instantly in real-time.
+                <p className="text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
+                  Discover VIT-AP events, club activities, lost & found, and everything happening around campus in real time.
                 </p>
               </div>
 
@@ -183,8 +183,10 @@ const Onboarding = () => {
       </div>
 
       {/* Footer copyright */}
-      <div className="absolute bottom-6 text-[10px] text-gray-650 font-semibold tracking-wide uppercase">
-        CampusLive Security &bull; Credentials Manager
+      <div className="absolute bottom-6 flex flex-col items-center gap-1.5 text-[10px] text-gray-650 font-semibold tracking-wide uppercase text-center">
+        <span className="text-[12px] font-extrabold text-slate-200">Built for VIT-AP Hackathon 2026</span>
+        <span className="text-[9px] text-gray-600 font-medium normal-case">Powered by Firebase &bull; React</span>
+        <span className="text-[9px] text-gray-500 border-t border-slate-900/60 pt-1.5 mt-1.5 px-4 tracking-widest">CampusLive Security &bull; Credentials Manager</span>
       </div>
     </div>
   );

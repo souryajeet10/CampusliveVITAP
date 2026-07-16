@@ -45,21 +45,21 @@ const Navbar = ({ setMobileOpen }) => {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Mobile Brand Icon (Left side) */}
-        <div className="flex items-center gap-2 md:hidden">
-          <CampusLiveIcon className="w-6 h-6 flex-shrink-0" />
+        {/* Mobile Brand Logo & Navigation */}
+        <div 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-1.5 md:hidden cursor-pointer active:scale-95 transition-all flex-shrink-0"
+        >
+          <CampusLiveIcon className="w-7 h-7" variant="solid" />
+          <span className="text-xs font-black text-white tracking-tight">CampusLive</span>
         </div>
 
-        {/* Mobile Centered Page Title or Brand */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 md:hidden text-xs font-bold tracking-wider text-white uppercase whitespace-nowrap">
-          {location.pathname === '/' ? (
-            <span className="normal-case font-black tracking-normal text-sm">
-              CampusLive <span className="text-indigo-400 font-extrabold text-[10px]">@VITAP</span>
-            </span>
-          ) : (
-            pageTitle
-          )}
-        </div>
+        {/* Mobile Centered Page Title */}
+        {location.pathname !== '/' && (
+          <div className="absolute left-1/2 transform -translate-x-1/2 md:hidden text-xs font-bold tracking-wider text-white uppercase whitespace-nowrap">
+            {pageTitle}
+          </div>
+        )}
 
         {/* Desktop: Page Title or Brand + Time */}
         <div className="hidden md:flex items-center gap-3.5">

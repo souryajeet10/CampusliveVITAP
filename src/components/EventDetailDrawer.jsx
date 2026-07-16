@@ -9,7 +9,8 @@ import {
   Navigation,
   Trash2,
   AlertTriangle,
-  Info
+  Info,
+  ChevronRight
 } from 'lucide-react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
@@ -21,6 +22,7 @@ const LOGO_EASE = [0.22, 1, 0.36, 1];
 const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showParticipantsModal, setShowParticipantsModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isJoiningLeaving, setIsJoiningLeaving] = useState(false);
   const [participantProfiles, setParticipantProfiles] = useState([]);
@@ -289,65 +291,28 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
                   ))}
                 </div>
 
-                {/* Live Participants List */}
+                {/* Live Participants Summary Card */}
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-900 pb-2">
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-indigo-400" />
-                      Joined Participants
-                    </h3>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-900 border border-slate-800 text-indigo-400 rounded-full">
-                      {participantCount}
-                    </span>
+                  <div 
+                    onClick={() => setShowParticipantsModal(true)}
+                    className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-900 hover:border-slate-800 transition-all cursor-pointer flex items-center justify-between group/btn"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center text-indigo-400">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-bold text-white">Joined Participants</p>
+                        <p className="text-[9px] text-slate-505 font-medium mt-0.5">Click to view all profiles</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-950 border border-slate-850 text-indigo-400 rounded-full">
+                        {participantCount}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover/btn:translate-x-0.5 transition-transform" />
+                    </div>
                   </div>
-
-                  {isLoadingParticipants ? (
-                    <div className="space-y-2 py-2">
-                      {Array.from({ length: 3 }).map((_, idx) => (
-                        <div key={idx} className="flex items-center gap-3 animate-pulse">
-                          <div className="w-8 h-8 bg-slate-900 rounded-full" />
-                          <div className="flex-1 space-y-1.5">
-                            <div className="h-3 bg-slate-900 rounded w-1/3" />
-                            <div className="h-2 bg-slate-900 rounded w-1/4" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : displayProfiles.length > 0 ? (
-                    <div className="space-y-2 max-h-52 overflow-y-auto scrollbar-none pr-1">
-                      {displayProfiles.map((user) => (
-                        <div key={user.id} className="flex items-center justify-between p-2 rounded-xl bg-slate-900/10 border border-slate-900 hover:border-slate-800 transition-all">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <img
-                              src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`}
-                              alt={user.name}
-                              className="w-8 h-8 rounded-full bg-slate-800 border border-slate-800 object-cover"
-                            />
-                            <div className="min-w-0 text-left">
-                              <p className="text-xs font-bold text-slate-200 truncate flex items-center gap-1">
-                                <span>{user.name}</span>
-                                {user.role === 'supreme_admin' && (
-                                  <span title="Supreme Admin" className="text-amber-400 text-[10px]">👑</span>
-                                )}
-                              </p>
-                              <p className="text-[9px] text-slate-500 font-semibold truncate">
-                                {[
-                                  user.username ? `@${user.username}` : null,
-                                  user.department,
-                                  user.year
-                                ].filter(Boolean).join(' · ')}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center border border-dashed border-slate-900/80 rounded-2xl flex flex-col items-center justify-center gap-2">
-                      <Info className="w-5 h-5 text-slate-650" />
-                      <p className="text-[11px] text-slate-500 font-medium">No participants yet. Be the first to join!</p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="h-4" />
@@ -426,6 +391,105 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
                           Delete
                         </>
                       )}
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Participants List Modal */}
+          <AnimatePresence>
+            {showParticipantsModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[150] flex items-center justify-center p-4"
+              >
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowParticipantsModal(false)} />
+                <motion.div
+                  initial={{ scale: 0.95, y: 15, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.95, y: 15, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: LOGO_EASE }}
+                  className="relative z-10 w-full max-w-md rounded-2xl bg-[#0b0f19] border border-slate-900 flex flex-col max-h-[70vh] shadow-2xl overflow-hidden text-left"
+                >
+                  {/* Modal Header */}
+                  <div className="p-4 border-b border-slate-900 flex items-center justify-between bg-slate-950/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center text-indigo-400">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Joined Participants</h3>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">Students attending this activity</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowParticipantsModal(false)}
+                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Modal Body */}
+                  <div className="p-4 overflow-y-auto scrollbar-none flex-1 space-y-2 min-h-[220px]">
+                    {isLoadingParticipants ? (
+                      <div className="space-y-2 py-2">
+                        {Array.from({ length: 3 }).map((_, idx) => (
+                          <div key={idx} className="flex items-center gap-3 animate-pulse p-2">
+                            <div className="w-8 h-8 bg-slate-900 rounded-full" />
+                            <div className="flex-1 space-y-1.5">
+                              <div className="h-3 bg-slate-900 rounded w-1/3" />
+                              <div className="h-2 bg-slate-900 rounded w-1/4" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : displayProfiles.length > 0 ? (
+                      displayProfiles.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/20 border border-slate-900 hover:border-slate-850 transition-all">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`}
+                              alt={user.name}
+                              className="w-9 h-9 rounded-full bg-slate-800 border border-slate-850 object-cover"
+                            />
+                            <div className="min-w-0 text-left leading-tight">
+                              <p className="text-xs font-bold text-slate-205 truncate flex items-center gap-1">
+                                <span>{user.name}</span>
+                                {user.role === 'supreme_admin' && (
+                                  <span title="Supreme Admin" className="text-amber-400 text-[10px]">👑</span>
+                                )}
+                              </p>
+                              <p className="text-[9.5px] text-slate-500 font-semibold mt-0.5 truncate">
+                                {[
+                                  user.username ? `@${user.username}` : null,
+                                  user.department,
+                                  user.year
+                                ].filter(Boolean).join(' · ')}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-12 text-center border border-dashed border-slate-900/80 rounded-2xl flex flex-col items-center justify-center gap-2">
+                        <Info className="w-5 h-5 text-slate-650" />
+                        <p className="text-[11px] text-slate-500 font-medium">No participants yet.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="p-3 bg-slate-950/30 border-t border-slate-900 flex justify-end">
+                    <button
+                      onClick={() => setShowParticipantsModal(false)}
+                      className="px-4 h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs cursor-pointer active:scale-95 transition-all"
+                    >
+                      Done
                     </button>
                   </div>
                 </motion.div>
