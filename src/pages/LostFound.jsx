@@ -25,6 +25,7 @@ import { useLostFoundPins } from '../hooks/useLostFoundPins';
 import { addLostFoundPin, resolvePin, subscribeResolvedCount } from '../services/lostFoundService';
 import { getRelativeTime, getRemainingTime } from '../utils/time';
 import { LostFoundModal } from '../components/LostFoundModal';
+import LostFoundDetailModal from '../components/LostFoundDetailModal';
 
 
 // Reusable Close Popup component inside React Leaflet Popups
@@ -196,6 +197,7 @@ const LostFound = () => {
   const [mapZoom, setMapZoom] = useState(19);
   const [mapBounds, setMapBounds] = useState(CAMPUS_POLYGON);
   const [selectedPin, setSelectedPin] = useState(null);
+  const [detailPin, setDetailPin] = useState(null);
   const [mobileView, setMobileView] = useState('map'); // 'map' | 'list'
 
   // Creation form states
@@ -308,6 +310,7 @@ const LostFound = () => {
 
   const handleSelectPin = (pin) => {
     setSelectedPin(pin);
+    setDetailPin(pin);
     setMapBounds(null);
     setMapCenter([pin.latitude, pin.longitude]);
     setMapZoom(19);
@@ -520,6 +523,7 @@ const LostFound = () => {
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
             />
             
             <ZoomControl position="bottomright" />
@@ -564,6 +568,7 @@ const LostFound = () => {
                               key={pin.id} 
                               onClick={() => {
                                 setSelectedPin(pin);
+                                setDetailPin(pin);
                               }}
                               className="text-[10px] font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer truncate py-0.5"
                             >
@@ -584,51 +589,12 @@ const LostFound = () => {
                   key={item.id}
                   position={[item.latitude, item.longitude]}
                   icon={isLost ? pinIconCache.lost : pinIconCache.found}
-                >
-                  <Popup closeButton={false}>
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 bg-[#0b0f19] border border-slate-900/20 text-slate-350 min-w-[240px] font-sans text-left space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
-                          ${isLost 
-                            ? 'bg-yellow-500/10 text-yellow-450 border-yellow-500/20' 
-                            : 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20'
-                          }`}
-                        >
-                          {isLost ? '🟡 Lost' : '🟢 Found'}
-                        </span>
-                        <PopupCloseButton />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <h4 className="text-xs font-extrabold text-white leading-tight">{item.title}</h4>
-                        <p className="text-[10px] text-gray-500 leading-normal">{item.description}</p>
-                      </div>
-
-                      <div className="flex justify-between items-center text-[9px] text-gray-600 pt-2.5 border-t border-slate-900/60 font-semibold">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 shrink-0" />
-                          <span>{getRelativeTime(item.createdAt?.seconds * 1000 || Date.now())}</span>
-                        </div>
-                        <span className="text-indigo-400/80">{getRemainingTime(item.expiresAtMs)}</span>
-                      </div>
-
-                      {/* Mark Resolved Option - visible to creator */}
-                      {item.createdBy === currentUserId && (
-                        <button
-                          onClick={() => handleResolvePin(item.id)}
-                          className="w-full h-7 mt-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 text-[9px] font-bold transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                          <span>Mark Resolved</span>
-                        </button>
-                      )}
-                    </motion.div>
-                  </Popup>
-                </Marker>
+                  eventHandlers={{
+                    click: () => {
+                      handleSelectPin(item);
+                    }
+                  }}
+                />
               );
             })}
           </MapContainer>
@@ -662,6 +628,16 @@ const LostFound = () => {
         onSubmit={handleConfirmPlacement}
         coordinates={tempCoords}
         isSaving={isSaving}
+      />
+
+      {/* Item Detail Modal */}
+      <LostFoundDetailModal
+        isOpen={!!detailPin}
+        onClose={() => setDetailPin(null)}
+        pin={detailPin}
+        currentUserId={currentUserId}
+        currentUser={currentUser}
+        onResolve={handleResolvePin}
       />
 
     </div>

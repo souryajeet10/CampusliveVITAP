@@ -195,8 +195,8 @@ export const LostFoundModal = ({
             </div>
 
             {/* Warning info */}
-            <div className="flex gap-2 p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/10 text-[10px] text-indigo-400">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+            <div className="flex gap-2 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 text-[10px] text-amber-400">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
               <p className="leading-relaxed">
                 Pins expire automatically after <strong>48 hours</strong> if not resolved.
               </p>

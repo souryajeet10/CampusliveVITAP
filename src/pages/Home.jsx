@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, Polygon } from 'react-leaflet';
 import L from 'leaflet';
+import { motion } from 'framer-motion';
 import { 
   Plus, 
   MapPin, 
@@ -141,14 +142,31 @@ const Home = () => {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [now, setNow] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
 
-  const featuredEvent = events.find(e => e.featured);
+  const featuredEvents = events.filter(e => e.featured).slice(0, 3);
+
+  // Clamp index if featuredEvents length changes
+  useEffect(() => {
+    if (featuredIndex >= featuredEvents.length) {
+      setFeaturedIndex(Math.max(0, featuredEvents.length - 1));
+    }
+  }, [featuredEvents.length, featuredIndex]);
 
   const handleFeatureEvent = async (eventId) => {
     try {
-      const currentFeatured = events.find(e => e.featured);
-      if (currentFeatured) {
-        await updateActivity(currentFeatured.id, { featured: false });
+      const currentFeatured = events.filter(e => e.featured);
+      if (currentFeatured.length >= 3) {
+        // Find oldest featured event to unfeature
+        const sortedFeatured = [...currentFeatured].sort((a, b) => {
+          const aTime = a.createdAt?.seconds || 0;
+          const bTime = b.createdAt?.seconds || 0;
+          return aTime - bTime;
+        });
+        const oldest = sortedFeatured[0];
+        if (oldest) {
+          await updateActivity(oldest.id, { featured: false });
+        }
       }
       await updateActivity(eventId, { featured: true });
     } catch (err) {
@@ -332,6 +350,7 @@ const Home = () => {
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maxZoom={19}
               />
               <ZoomControl position="bottomright" />
 
@@ -608,79 +627,155 @@ const Home = () => {
           </div>
 
           {/* Quick Featured Event Card */}
-          {(featuredEvent || currentUser?.role === 'supreme_admin') && (
+          {(featuredEvents.length > 0 || currentUser?.role === 'supreme_admin') && (
             <div className="rounded-2xl border border-slate-900 bg-[#080b11] p-5 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-900 mb-2">
-                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/15">
-                  Featured Event
-                </span>
-                {featuredEvent && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/15">
+                    Featured Events
+                  </span>
+                  {featuredEvents.length > 0 && (
+                    <span className="text-[9px] font-extrabold text-gray-500 uppercase tracking-wider">
+                      ({featuredIndex + 1} of {featuredEvents.length})
+                    </span>
+                  )}
+                </div>
+                {featuredEvents.length > 0 && (
                   <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500 animate-pulse" />
                     <span>Featured</span>
                   </div>
                 )}
               </div>
 
-              {featuredEvent ? (
-                <div className="space-y-3 text-left">
-                  <div>
-                    <h3 className="text-sm font-bold text-white">{featuredEvent.name}</h3>
-                    <p className="text-[11px] text-gray-500 leading-relaxed mt-1 line-clamp-3">
-                      {featuredEvent.description}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>Location</span>
-                      </div>
-                      <span className="font-semibold text-slate-300 truncate max-w-[150px]">
-                        {getBuildingName(featuredEvent.coordinates)} • {featuredEvent.room}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Time</span>
-                      </div>
-                      <span className="font-semibold text-slate-300">{featuredEvent.time}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1">
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>Attendees</span>
-                      </div>
-                      <span className="font-semibold text-slate-350">{featuredEvent.participantCount} joined</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-4 pt-3 border-t border-slate-900">
-                    <button
-                      onClick={() => setSelectedEventId(featuredEvent.id)}
-                      className="flex-1 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold transition-all shadow-md shadow-blue-600/10 flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
-                    >
-                      <span>View Details</span>
-                      <ArrowUpRight className="w-3 h-3" />
-                    </button>
-                    {currentUser?.role === 'supreme_admin' && (
-                      <button
-                        onClick={() => handleUnfeatureEvent(featuredEvent.id)}
-                        className="px-3 h-9 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 border border-rose-500/20 text-[10px] font-bold transition-all active:scale-98 cursor-pointer"
-                        title="Remove from Featured"
+              {featuredEvents.length > 0 ? (
+                <div className="space-y-4 text-left">
+                  {/* Current Active Slide */}
+                  {featuredEvents.map((evt, idx) => {
+                    if (idx !== featuredIndex) return null;
+                    return (
+                      <motion.div
+                        key={evt.id}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="space-y-3"
                       >
-                        Remove
-                      </button>
-                    )}
-                  </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-white truncate">{evt.name}</h3>
+                          <p className="text-[11px] text-gray-505 leading-relaxed mt-1 line-clamp-3">
+                            {evt.description}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
+                            <div className="flex items-center gap-2 text-gray-500">
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span>Location</span>
+                            </div>
+                            <span className="font-semibold text-slate-300 truncate max-w-[150px]">
+                              {getBuildingName(evt.coordinates)} • {evt.room}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1 border-b border-slate-900/50">
+                            <div className="flex items-center gap-2 text-gray-500">
+                              <Clock className="w-3.5 h-3.5 shrink-0" />
+                              <span>Time</span>
+                            </div>
+                            <span className="font-semibold text-slate-300">{evt.time}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-1">
+                            <div className="flex items-center gap-2 text-gray-500">
+                              <Users className="w-3.5 h-3.5 shrink-0" />
+                              <span>Attendees</span>
+                            </div>
+                            <span className="font-semibold text-slate-350">{evt.participantCount} joined</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 mt-4 pt-3 border-t border-slate-900">
+                          <button
+                            onClick={() => setSelectedEventId(evt.id)}
+                            className="flex-1 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold transition-all shadow-md shadow-blue-600/10 flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
+                          >
+                            <span>View Details</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                          </button>
+                          {currentUser?.role === 'supreme_admin' && (
+                            <button
+                              onClick={() => handleUnfeatureEvent(evt.id)}
+                              className="px-3 h-9 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 border border-rose-500/20 text-[10px] font-bold transition-all active:scale-98 cursor-pointer"
+                              title="Remove from Featured"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+
+                  {/* Carousel Dot Nav and Navigation controls */}
+                  {featuredEvents.length > 1 && (
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-900/30">
+                      <div className="flex gap-1.5">
+                        {featuredEvents.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setFeaturedIndex(idx)}
+                            className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
+                              idx === featuredIndex ? 'bg-indigo-500 w-3' : 'bg-slate-800'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setFeaturedIndex(prev => (prev - 1 + featuredEvents.length) % featuredEvents.length)}
+                          className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-gray-400 hover:text-white hover:bg-slate-850 active:scale-90 transition-all cursor-pointer text-[9px] font-bold"
+                        >
+                          Prev
+                        </button>
+                        <button
+                          onClick={() => setFeaturedIndex(prev => (prev + 1) % featuredEvents.length)}
+                          className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-gray-400 hover:text-white hover:bg-slate-850 active:scale-90 transition-all cursor-pointer text-[9px] font-bold"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Supreme Admin selector (when under max 3 featured events) */}
+                  {currentUser?.role === 'supreme_admin' && featuredEvents.length < 3 && (
+                    <div className="pt-3 border-t border-slate-900/60 mt-2 space-y-2">
+                      <label className="text-[9px] font-bold text-gray-650 uppercase tracking-wider block">Add another featured event ({featuredEvents.length}/3)</label>
+                      <select
+                        onChange={(e) => {
+                          const eventId = e.target.value;
+                          if (eventId) handleFeatureEvent(eventId);
+                        }}
+                        defaultValue=""
+                        className="w-full h-8 px-2.5 rounded-lg bg-[#06090f] border border-slate-900 text-slate-350 text-[10px] focus:outline-none focus:border-indigo-500/80 transition-all font-semibold cursor-pointer"
+                      >
+                        <option value="" disabled>-- Feature Another Event --</option>
+                        {events
+                          .filter((e) => !e.featured)
+                          .map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.name} ({e.category})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Supreme Admin selector (when no event is featured) */
                 <div className="space-y-3 text-left">
                   <p className="text-[11px] text-gray-500 leading-normal">
-                    No active featured event. Select an event to display it prominently on the dashboard.
+                    No active featured events. Select up to 3 events to display prominently on the dashboard.
                   </p>
                   
                   <div className="space-y-2">

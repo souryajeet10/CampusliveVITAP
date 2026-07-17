@@ -455,6 +455,7 @@ const Events = () => {
         onClose={() => setSelectedEventId(null)}
         event={events.find(e => e.id === selectedEventId)}
         currentUserId={currentUser?.id}
+        currentUser={currentUser}
         onDelete={deleteActivity}
       />
     </div>

@@ -810,6 +810,7 @@ const CampusMap = () => {
         onClose={() => setSelectedEventId(null)}
         event={events.find(e => e.id === selectedEventId)}
         currentUserId={currentUserId}
+        currentUser={currentUser}
         onDelete={deleteActivity}
       />
     </div>

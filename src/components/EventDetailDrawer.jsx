@@ -19,7 +19,7 @@ import { accentGradients } from '../utils/constants';
 
 const LOGO_EASE = [0.22, 1, 0.36, 1];
 
-const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) => {
+const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, currentUser, onDelete }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
@@ -28,7 +28,7 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, onDelete }) 
   const [participantProfiles, setParticipantProfiles] = useState([]);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
 
-  const isCreator = currentUserId && event?.createdBy === currentUserId;
+  const isCreator = currentUserId && (event?.createdBy === currentUserId || currentUser?.role === 'supreme_admin');
   const hasJoined = event?.participants?.includes(currentUserId);
   const participantCount = event?.participants?.length || 0;
 
