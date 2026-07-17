@@ -242,7 +242,7 @@ const SidebarContent = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
         {expanded && (
           <div className="mt-3 pt-1 select-none flex flex-col transition-all duration-200 text-left items-start pl-[58px]">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-none">CAMPUSLIVE</span>
-            <span className="text-[11px] font-semibold text-slate-400 mt-1.5 leading-none whitespace-nowrap">v0.9.5 • Preview Release</span>
+            <span className="text-[11px] font-semibold text-slate-400 mt-1.5 leading-none whitespace-nowrap">v0.10.0 • Preview Release</span>
           </div>
         )}
       </div>

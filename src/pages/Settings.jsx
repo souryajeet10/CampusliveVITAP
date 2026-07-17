@@ -235,7 +235,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
               </div>
               <div className="space-y-1">
                 <p className="text-[9px] text-gray-550 uppercase tracking-wider">Version</p>
-                <p className="text-slate-200 font-bold">v0.9.5 "Preview Release"</p>
+                <p className="text-slate-200 font-bold">v0.10.0 "Preview Release"</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[9px] text-gray-550 uppercase tracking-wider">Environment</p>
