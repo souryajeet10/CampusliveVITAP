@@ -317,6 +317,7 @@ const CampusMap = () => {
   }, [searchQuery]);
 
   const [activeFilter, setActiveFilter] = useState('All');
+  const [activeSourceFilter, setActiveSourceFilter] = useState('All');
 
   // Submit and Toast feedback states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -386,7 +387,9 @@ const CampusMap = () => {
           creatorName: act.creatorName || 'CampusLive User',
           building: act.building || 'Campus Landmark',
           eventType: act.eventType || 'student',
-          clubId: act.clubId || null
+          clubId: act.clubId || null,
+          organizerName: act.organizerName || act.creatorName || 'CampusLive User',
+          organizerLogo: act.organizerLogo || `https://api.dicebear.com/7.x/bottts/svg?seed=${act.createdBy || act.id}`
         }));
 
         setEvents(mapped);
@@ -484,25 +487,17 @@ const CampusMap = () => {
 
   // Filter events based on active category, debounced search query, and member access
   const filteredEvents = events.filter(event => {
-    if (event.eventType === 'club') {
-      if (currentUser?.role !== 'supreme_admin' && currentUser?.role !== 'university_admin') {
-        const matchingClub = clubs.find(c => c.clubId === event.clubId);
-        if (!matchingClub || 
-            (!matchingClub.members?.includes(currentUser?.id) && 
-             !matchingClub.adminIds?.includes(currentUser?.id))) {
-          return false;
-        }
-      }
-    }
-
     const matchesFilter = activeFilter === 'All' || event.category === activeFilter;
+    const matchesSource = activeSourceFilter === 'All' ||
+      (activeSourceFilter === 'Student' && event.eventType === 'student') ||
+      (activeSourceFilter === 'Club' && event.eventType === 'club');
     const cleanSearch = debouncedSearchQuery.toLowerCase();
     const matchesSearch =
       event.name.toLowerCase().includes(cleanSearch) ||
       event.category.toLowerCase().includes(cleanSearch) ||
       event.description.toLowerCase().includes(cleanSearch) ||
       event.room.toLowerCase().includes(cleanSearch);
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesSource && matchesSearch;
   });
 
   const categories = ['All', 'Study', 'Sports', 'Food', 'Tech', 'Music', 'Gaming'];
@@ -568,6 +563,45 @@ const CampusMap = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-9 pl-9 pr-3 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-650 focus:outline-none focus:border-indigo-500/80 transition-all text-xs font-medium"
               />
+            </div>
+
+            {/* Scheduled & Live Events Counter */}
+            <div className="grid grid-cols-2 gap-2 text-center select-none bg-slate-950/40 p-2.5 rounded-xl border border-slate-900">
+              <div className="flex flex-col items-center justify-center p-1.5 bg-[#06090f]/60 rounded-lg border border-slate-900/60">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  Live Events
+                </span>
+                <span className="text-sm font-black text-rose-500 mt-1">
+                  {filteredEvents.filter(e => e.isLive).length}
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-1.5 bg-[#06090f]/60 rounded-lg border border-slate-900/60">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  Scheduled
+                </span>
+                <span className="text-sm font-black text-indigo-400 mt-1">
+                  {filteredEvents.filter(e => !e.isLive).length}
+                </span>
+              </div>
+            </div>
+
+            {/* Event Source Filter Chips */}
+            <div className="flex gap-1 bg-[#06090f] p-1 rounded-xl border border-slate-900/60 select-none">
+              {['All', 'Student', 'Club'].map((src) => (
+                <button
+                  key={src}
+                  onClick={() => setActiveSourceFilter(src)}
+                  className={`flex-1 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border shrink-0 cursor-pointer
+                  ${activeSourceFilter === src
+                      ? 'bg-indigo-600/15 border-indigo-500/25 text-indigo-405 shadow-sm'
+                      : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300'
+                    }`}
+                >
+                  {src}
+                </button>
+              ))}
             </div>
 
             {/* Categories Horizontal Scroll */}
@@ -648,9 +682,21 @@ const CampusMap = () => {
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-slate-900/60 text-[9px] text-gray-500">
-                        <div className="flex items-center gap-1 font-semibold uppercase tracking-wider text-gray-555">
-                          <IconComp className="w-2.5 h-2.5" />
-                          <span>{event.category}</span>
+                        <div className="flex items-center gap-2 font-semibold uppercase tracking-wider text-gray-555">
+                          <div className="flex items-center gap-1">
+                            <IconComp className="w-2.5 h-2.5" />
+                            <span>{event.category}</span>
+                          </div>
+                          <span className={`px-1 py-0.2 rounded text-[7px] font-extrabold uppercase tracking-wide border
+                            ${event.eventType === 'club'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : event.eventType === 'university'
+                                ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            }`}
+                          >
+                            {event.eventType === 'club' ? 'Club' : event.eventType === 'university' ? 'Admin' : 'Student'}
+                          </span>
                         </div>
                         <span>{event.time}</span>
                       </div>
@@ -764,7 +810,7 @@ const CampusMap = () => {
             )}
 
             {/* Event Markers */}
-            {events.map((event) => (
+            {filteredEvents.map((event) => (
               <Marker
                 key={event.id}
                 position={event.coordinates}
@@ -806,7 +852,7 @@ const CampusMap = () => {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 bg-[#0b0f19] border px-4 py-3 rounded-xl shadow-2xl text-xs font-bold font-sans
+            className={`fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 bg-[#0b0f19] border px-4 py-3 rounded-xl shadow-2xl text-xs font-bold font-sans
               ${toast.type === 'success' ? 'border-emerald-500/30 text-emerald-450' : 'border-rose-500/30 text-rose-450'}`}
           >
             {toast.type === 'success' ? (

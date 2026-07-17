@@ -11,8 +11,6 @@ import {
   Users,
   Compass,
   CheckCircle2,
-  Bookmark,
-  Share2,
   CalendarDays,
   ChevronDown,
   Filter,
@@ -71,7 +69,7 @@ const Toast = ({ message, type, onClose }) => {
       initial={{ opacity: 0, y: 50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.9 }}
-      className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md
+      className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md
         ${type === 'success' 
           ? 'bg-emerald-950/90 border-emerald-500/25 text-emerald-400' 
           : 'bg-indigo-950/90 border-indigo-500/25 text-indigo-400'
@@ -100,16 +98,8 @@ const Events = () => {
   const [sortBy, setSortBy] = useState('Newest');
   
   // Interactive Local States for immediate user feedback
-  const [localBookmarks, setLocalBookmarks] = useState([]);
   const [toast, setToast] = useState(null);
   const [isProcessingId, setIsProcessingId] = useState(null);
-
-  // Sync initial bookmarks from currentUser
-  useEffect(() => {
-    if (currentUser?.bookmarkedEvents) {
-      setLocalBookmarks(currentUser.bookmarkedEvents);
-    }
-  }, [currentUser]);
 
   // Subscribe to real-time events feed & clubs
   useEffect(() => {
@@ -185,32 +175,6 @@ const Events = () => {
     showToast('Filters reset successfully', 'info');
   };
 
-  // Toggle bookmark action
-  const handleToggleBookmark = async (eventId, e) => {
-    e.stopPropagation();
-    if (!currentUser?.id) return;
-    
-    const isBookmarked = localBookmarks.includes(eventId);
-    const updated = isBookmarked 
-      ? localBookmarks.filter(id => id !== eventId)
-      : [...localBookmarks, eventId];
-      
-    setLocalBookmarks(updated);
-    
-    try {
-      await updateUserProfile(currentUser.id, {
-        bookmarkedEvents: updated
-      });
-      showToast(
-        isBookmarked ? 'Event removed from bookmarks' : 'Event added to bookmarks', 
-        'success'
-      );
-    } catch (err) {
-      console.error('Error saving bookmark:', err);
-      showToast('Failed to update bookmarks', 'error');
-    }
-  };
-
   // Toggle Interested action (updates Firestore collection)
   const handleToggleInterest = async (event, e) => {
     e.stopPropagation();
@@ -242,14 +206,6 @@ const Events = () => {
     }
   };
 
-  // Share Event Action (copies custom URL)
-  const handleShareEvent = (eventId, e) => {
-    e.stopPropagation();
-    const eventUrl = `${window.location.origin}/events/${eventId}`;
-    navigator.clipboard.writeText(eventUrl);
-    showToast('Event link copied to clipboard!', 'success');
-  };
-
   // Date Check Helpers
   const dateCheckHelpers = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -273,17 +229,6 @@ const Events = () => {
   const filteredEvents = useMemo(() => {
     return events
       .filter((event) => {
-        // Enforce member-only visibility for Official Club Events
-        if (event.eventType === 'club') {
-          if (currentUser?.role !== 'supreme_admin' && currentUser?.role !== 'university_admin') {
-            const matchingClub = clubs.find(c => c.clubId === event.clubId);
-            if (!matchingClub || 
-                (!matchingClub.members?.includes(currentUser?.id) && 
-                 !matchingClub.adminIds?.includes(currentUser?.id))) {
-              return false;
-            }
-          }
-        }
         // 1. Search Query Filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
@@ -354,7 +299,7 @@ const Events = () => {
   }, [events, searchQuery, activeChip, categoryFilter, timeFilter, sortBy, dateCheckHelpers]);
 
   return (
-    <div className="space-y-8 font-sans text-slate-300 pb-16 select-none max-w-7xl mx-auto text-left relative z-10">
+    <div className="space-y-6 font-sans text-slate-300 pb-16 select-none max-w-7xl mx-auto text-left relative z-10">
       
       {/* Toast Feedback */}
       <AnimatePresence>
@@ -368,19 +313,51 @@ const Events = () => {
       </AnimatePresence>
 
       {/* ─── Header ─── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-black text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-            Campus Events
-          </h1>
-          <p className="text-sm text-slate-500 mt-1.5 font-medium">
-            Discover everything happening across campus in one place.
-          </p>
+      <div className="flex flex-col gap-4">
+        {/* Title + Stats Row */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+              Campus Events
+            </h1>
+            <p className="text-sm text-slate-500 mt-1.5 font-medium">
+              Discover everything happening across campus in one place.
+            </p>
+          </div>
+
+          {/* Live and Scheduled Event Counters */}
+          <div className="flex gap-5 self-start bg-[#080b11]/70 px-5 py-3 rounded-2xl border border-slate-850 shadow-xl shadow-black/20 backdrop-blur-md shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="relative flex items-center justify-center shrink-0">
+                <span className="absolute inline-flex h-4 w-4 rounded-full bg-rose-500/30 animate-ping" />
+                <span className="relative w-2.5 h-2.5 rounded-full bg-rose-500" />
+              </div>
+              <div className="text-left leading-none">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live</p>
+                <p className="text-2xl font-black text-rose-505 mt-1 leading-none">
+                  {filteredEvents.filter(e => e.isLive).length}
+                </p>
+              </div>
+            </div>
+            <div className="w-px h-10 bg-slate-900 self-center" />
+            <div className="flex items-center gap-2.5">
+              <div className="relative flex items-center justify-center shrink-0">
+                <span className="relative w-2.5 h-2.5 rounded-full bg-indigo-500" />
+              </div>
+              <div className="text-left leading-none">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Scheduled</p>
+                <p className="text-2xl font-black text-indigo-405 mt-1 leading-none">
+                  {filteredEvents.filter(e => !e.isLive).length}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        
+
+        {/* Create Event Button - full width on mobile */}
         <button
           onClick={() => navigate('/map?select=true')}
-          className="h-11 px-5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer hover:scale-102 active:scale-95 self-start md:self-auto"
+          className="w-full sm:w-auto h-11 px-5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer hover:scale-102 active:scale-95"
         >
           <Plus className="w-4.5 h-4.5" />
           <span>Create Event</span>
@@ -434,8 +411,9 @@ const Events = () => {
       </div>
 
       {/* ─── Secondary Filters Row ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#080b11]/30 border border-slate-900/40">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+        <div className="flex flex-nowrap items-center justify-between gap-3 p-4 rounded-2xl bg-[#080b11]/30 border border-slate-900/40 min-w-max sm:min-w-0">
+          <div className="flex flex-nowrap items-center gap-3">
           
           {/* Category Dropdown */}
           <div className="relative group">
@@ -480,33 +458,34 @@ const Events = () => {
             </button>
           )}
 
-        </div>
-
-        {/* Sort By Dropdown */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-550 flex items-center gap-1">
-            <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
-            Sort:
-          </span>
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none pl-3 pr-8 h-9 rounded-lg bg-slate-950/60 border border-slate-900 text-[11px] font-bold text-slate-350 focus:outline-none cursor-pointer focus:border-indigo-500/40"
-            >
-              <option value="Newest">Newest</option>
-              <option value="Most Popular">Most Popular</option>
-              <option value="Closest Date">Closest Date</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-550 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-        </div>
 
+          {/* Sort By Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-550 flex items-center gap-1">
+              <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
+              Sort:
+            </span>
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="appearance-none pl-3 pr-8 h-9 rounded-lg bg-slate-950/60 border border-slate-900 text-[11px] font-bold text-slate-350 focus:outline-none cursor-pointer focus:border-indigo-500/40"
+              >
+                <option value="Newest">Newest</option>
+                <option value="Most Popular">Most Popular</option>
+                <option value="Closest Date">Closest Date</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-550 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+        </div>
       </div>
 
       {/* ─── Events Feed Grid ─── */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <ActivityCardSkeleton />
           <ActivityCardSkeleton />
           <ActivityCardSkeleton />
@@ -515,10 +494,9 @@ const Events = () => {
           <ActivityCardSkeleton />
         </div>
       ) : filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <AnimatePresence>
             {filteredEvents.map((event) => {
-              const isBookmarked = localBookmarks.includes(event.id);
               const hasInterested = event.participants.includes(currentUser?.id);
               const isWorking = isProcessingId === event.id;
 
@@ -556,18 +534,6 @@ const Events = () => {
                     
                     {/* Glassy Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#080b11] via-black/10 to-transparent pointer-events-none" />
-
-                    {/* Bookmark Toggle Overlay button */}
-                    <button
-                      onClick={(e) => handleToggleBookmark(event.id, e)}
-                      className={`absolute top-3 right-3 p-2 rounded-xl backdrop-blur-md transition-all border shadow-md active:scale-90 cursor-pointer
-                        ${isBookmarked 
-                          ? 'bg-gradient-to-tr from-indigo-500 to-purple-600 border-transparent text-white' 
-                          : 'bg-black/50 border-slate-800/80 text-slate-400 hover:text-white'
-                        }`}
-                    >
-                      <Bookmark className="w-4 h-4 fill-current" />
-                    </button>
 
                     {/* Category Label Overlay */}
                     <span className="absolute bottom-3 left-3 text-[9px] bg-slate-950/80 border border-slate-900/60 text-slate-200 font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg backdrop-blur-sm shadow-sm">
@@ -640,7 +606,7 @@ const Events = () => {
                     <button
                       disabled={isWorking}
                       onClick={(e) => handleToggleInterest(event, e)}
-                      className={`flex-1 h-9 rounded-xl text-white font-extrabold text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 border
+                      className={`w-full h-9 rounded-xl text-white font-extrabold text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 border
                         ${hasInterested
                           ? 'bg-rose-500/10 border-rose-500/20 text-rose-450 hover:bg-rose-500/25 shadow-rose-500/5'
                           : `bg-gradient-to-tr ${accentGradients[categoryColors[event.category]] || 'from-indigo-500 to-purple-600'} border-transparent hover:opacity-90`
@@ -653,14 +619,6 @@ const Events = () => {
                       ) : (
                         <span>Join Event</span>
                       )}
-                    </button>
-
-                    <button
-                      onClick={(e) => handleShareEvent(event.id, e)}
-                      className="p-2 h-9 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-400 hover:text-white transition-all cursor-pointer active:scale-90"
-                      title="Share Event"
-                    >
-                      <Share2 className="w-4 h-4" />
                     </button>
                   </div>
 

@@ -81,10 +81,12 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, currentUser,
 
   if (!event) return null;
 
+  console.log('Event in drawer:', event.title, 'organizerName:', event.organizerName, 'creatorName:', event.creatorName);
+
   const building = event.building || 'Campus Landmark';
   const distance = event.distance || 'Near you';
-  const organizerAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${event.createdBy || event.id}`;
-  const organizerName = event.creatorName || 'CampusLive User';
+  const organizerAvatar = event.organizerLogo || `https://api.dicebear.com/7.x/bottts/svg?seed=${event.createdBy || event.id}`;
+  const organizerName = event.organizerName || event.creatorName || 'CampusLive User';
   const organizerProfile = participantProfiles.find(p => p.id === event.createdBy);
   const isOrganizerAdmin = event.creatorRole === 'supreme_admin' || organizerProfile?.role === 'supreme_admin';
   const tags = event.tags || [`#${event.category}`, '#CampusLive'];
@@ -207,6 +209,21 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, currentUser,
                       }`}
                     >
                       {event.isLive ? '● Live' : 'Upcoming'}
+                    </span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded backdrop-blur-md border shadow-sm
+                      ${event.eventType === 'club'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : event.eventType === 'university'
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                      }`}
+                    >
+                      {event.eventType === 'club'
+                        ? 'Official Club'
+                        : event.eventType === 'university'
+                          ? 'University'
+                          : 'Student'
+                      }
                     </span>
                     <span className="text-[10px] bg-black/40 backdrop-blur-md text-slate-200 border border-white/10 font-semibold uppercase tracking-wider px-2 py-1 rounded">
                       {event.category}

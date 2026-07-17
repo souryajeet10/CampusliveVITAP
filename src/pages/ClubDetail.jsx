@@ -53,7 +53,7 @@ const Toast = ({ message, type, onClose }) => {
       initial={{ opacity: 0, y: 50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.9 }}
-      className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md
+      className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md
         ${type === 'success' 
           ? 'bg-emerald-950/90 border-emerald-500/25 text-emerald-400' 
           : 'bg-indigo-950/90 border-indigo-500/25 text-indigo-400'

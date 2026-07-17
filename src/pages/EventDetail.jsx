@@ -6,8 +6,6 @@ import {
   Clock,
   Calendar,
   Users,
-  Bookmark,
-  Share2,
   CalendarDays,
   ArrowLeft,
   CheckCircle2,
@@ -66,7 +64,7 @@ const Toast = ({ message, type, onClose }) => {
       initial={{ opacity: 0, y: 50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.9 }}
-      className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md
+      className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md
         ${type === 'success' 
           ? 'bg-emerald-950/90 border-emerald-500/25 text-emerald-400' 
           : 'bg-indigo-950/90 border-indigo-500/25 text-indigo-400'
@@ -88,7 +86,6 @@ const EventDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [localBookmarks, setLocalBookmarks] = useState([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockedClubName, setBlockedClubName] = useState('');
   
@@ -96,13 +93,6 @@ const EventDetail = () => {
   const [showInterestedModal, setShowInterestedModal] = useState(false);
   const [participantProfiles, setParticipantProfiles] = useState([]);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
-
-  // Sync user bookmarks
-  useEffect(() => {
-    if (currentUser?.bookmarkedEvents) {
-      setLocalBookmarks(currentUser.bookmarkedEvents);
-    }
-  }, [currentUser]);
 
   // Fetch single event details in real-time or via single getDoc
   useEffect(() => {
@@ -244,7 +234,6 @@ const EventDetail = () => {
 
   if (!event) return null;
 
-  const isBookmarked = localBookmarks.includes(event.id);
   const hasInterested = event.participants.includes(currentUser?.id);
 
   // Type Badges styling
@@ -257,30 +246,6 @@ const EventDetail = () => {
     badgeColor = 'text-purple-400 bg-purple-500/10 border-purple-500/25';
     badgeLabel = 'University Event';
   }
-
-  // Toggle Bookmark Handler
-  const handleToggleBookmark = async () => {
-    if (!currentUser?.id) return;
-    
-    const updated = isBookmarked 
-      ? localBookmarks.filter(id => id !== event.id)
-      : [...localBookmarks, event.id];
-      
-    setLocalBookmarks(updated);
-    
-    try {
-      await updateUserProfile(currentUser.id, {
-        bookmarkedEvents: updated
-      });
-      showToast(
-        isBookmarked ? 'Event removed from bookmarks' : 'Event added to bookmarks', 
-        'success'
-      );
-    } catch (err) {
-      console.error('Error saving bookmark:', err);
-      showToast('Failed to update bookmarks', 'error');
-    }
-  };
 
   // Toggle Interest Handler
   const handleToggleInterest = async () => {
@@ -321,13 +286,6 @@ const EventDetail = () => {
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  // Share Event Link
-  const handleShare = () => {
-    const eventUrl = window.location.href;
-    navigator.clipboard.writeText(eventUrl);
-    showToast('Event link copied to clipboard!', 'success');
   };
 
   // Calendar Placement Alert
@@ -379,25 +337,7 @@ const EventDetail = () => {
               {event.category}
             </span>
 
-            {/* Banner Floating Action Controls */}
-            <div className="absolute top-4 right-4 flex gap-2">
-              <button
-                onClick={handleToggleBookmark}
-                className={`p-2 rounded-xl backdrop-blur-md transition-all border shadow-lg cursor-pointer active:scale-90
-                  ${isBookmarked
-                    ? 'bg-gradient-to-tr from-indigo-500 to-purple-600 border-transparent text-white'
-                    : 'bg-black/50 border-slate-850 text-slate-400 hover:text-white'
-                  }`}
-              >
-                <Bookmark className="w-4.5 h-4.5 fill-current" />
-              </button>
-              <button
-                onClick={handleShare}
-                className="p-2 rounded-xl backdrop-blur-md bg-black/50 border border-slate-850 text-slate-400 hover:text-white transition-all shadow-lg cursor-pointer active:scale-90"
-              >
-                <Share2 className="w-4.5 h-4.5" />
-              </button>
-            </div>
+
 
             {/* Text Overlay Details */}
             <div className="relative z-10 p-6 md:p-8 space-y-3 w-full text-left">
@@ -570,10 +510,10 @@ const EventDetail = () => {
               )}
             </button>
 
-            {/* Add to Calendar Button */}
+            {/* Add to Calendar Button - hidden on mobile */}
             <button
               onClick={handleAddToCalendar}
-              className="w-full h-10 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-97"
+              className="hidden lg:flex w-full h-10 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-300 font-bold text-xs items-center justify-center gap-2 transition-all cursor-pointer active:scale-97"
             >
               <CalendarPlus className="w-4 h-4 text-indigo-400" />
               <span>Add to Calendar</span>
