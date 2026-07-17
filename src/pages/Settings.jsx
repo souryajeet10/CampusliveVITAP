@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,11 +15,16 @@ import {
 } from 'lucide-react';
 import CampusLiveIcon from '../components/common/CampusLiveIcon';
 import { useAuth } from '../hooks/useAuth';
+import { updateUserProfile } from '../services/userService';
 
 const SettingsPage = () => {
   const { currentUser, logout } = useAuth();
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   if (!currentUser) return null;
 
@@ -197,6 +202,8 @@ Save this credentials card. You will need your unique Campus ID to access your p
             </div>
           </div>
 
+
+
           {/* Danger zone / Logout */}
           <div className="p-6 rounded-2xl bg-rose-950/5 border border-rose-500/10 shadow-xl space-y-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-0.5 text-left">
@@ -206,7 +213,7 @@ Save this credentials card. You will need your unique Campus ID to access your p
               </p>
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="h-10 px-5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98 shrink-0"
             >
               <LogOut className="w-3.5 h-3.5" />

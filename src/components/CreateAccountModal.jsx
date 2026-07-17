@@ -111,10 +111,10 @@ const CreateAccountModal = ({ onRegister, onBack, onError }) => {
               type="text"
               required
               maxLength={40}
-              placeholder="e.g. Aarav Sharma"
+              placeholder="e.g. G. Viswanathan"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 transition-all text-xs font-semibold"
+              className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-650 focus:outline-none focus:border-indigo-500/80 transition-all text-xs font-semibold"
             />
           </div>
         </div>

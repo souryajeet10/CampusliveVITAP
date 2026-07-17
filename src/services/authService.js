@@ -35,7 +35,7 @@ export const generateUniqueCampusId = async () => {
  * Validates format of a Campus ID.
  */
 export const validateCampusIdFormat = (campusId) => {
-  const oldRegex = /^CL-[2-9A-HJK-NP-Z]{4}-[2-9A-HJK-NP-Z]{4}$/;
+  const oldRegex = /^CL-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   const newRegex = /^VITAP-[2-9A-HJK-NP-Z]{6}$/;
   return oldRegex.test(campusId) || newRegex.test(campusId);
 };

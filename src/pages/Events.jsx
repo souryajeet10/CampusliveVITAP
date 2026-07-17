@@ -1,26 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Clock, 
-  ArrowUpRight, 
-  Sparkles, 
-  Plus, 
-  Flame, 
-  CheckCircle2, 
-  X, 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Search,
+  Calendar,
+  MapPin,
+  Clock,
+  ArrowUpRight,
+  Plus,
+  Users,
   Compass,
+  CheckCircle2,
+  Bookmark,
+  Share2,
+  CalendarDays,
+  ChevronDown,
+  Filter,
   User,
-  Activity,
-  Award
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
-import { subscribeActivities, joinActivity, leaveActivity, deleteActivity } from '../services/activityService';
-import { accentGradients } from '../utils/constants';
-import EventDetailDrawer from '../components/EventDetailDrawer';
+import { doc, updateDoc, arrayUnion, arrayRemove, increment, collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/firebase';
+import { subscribeActivities, deleteActivity } from '../services/activityService';
+import { updateUserProfile } from '../services/userService';
 import { useAuth } from '../hooks/useAuth';
+import { accentGradients, eventCategories, categoryColors, defaultEventCovers } from '../utils/constants';
 
 // Helper to convert 24h format "14:00" to 12h format "2:00 PM"
 const formatTime12h = (timeStr) => {
@@ -34,96 +39,121 @@ const formatTime12h = (timeStr) => {
   return `${hours}:${minutes} ${ampm}`;
 };
 
-const AnimatedCounter = ({ value }) => {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    let startTimestamp = null;
-    const startVal = displayValue;
-    const endVal = Number(value) || 0;
-    const duration = 500;
-
-    const step = (timestamp) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      const currentVal = Math.floor(progress * (endVal - startVal) + startVal);
-      setDisplayValue(currentVal);
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      }
-    };
-
-    window.requestAnimationFrame(step);
-  }, [value]);
-
-  return <span className="tabular-nums">{displayValue}</span>;
-};
-
-// Activity Loading Shimmer
+// Shimmer Skeleton for Event Cards
 const ActivityCardSkeleton = () => (
-  <div className="p-5 rounded-2xl border border-slate-900 bg-[#080b11] space-y-4 animate-pulse select-none">
-    <div className="h-28 bg-slate-900 rounded-xl" />
+  <div className="p-5 rounded-2xl border border-slate-900/80 bg-[#080b11]/60 backdrop-blur-md space-y-4 animate-pulse select-none">
+    <div className="h-40 bg-slate-900/70 rounded-xl" />
     <div className="flex justify-between items-center">
-      <div className="h-4 bg-slate-900 rounded w-1/4" />
-      <div className="h-4 bg-slate-900 rounded w-1/6" />
+      <div className="h-4 bg-slate-900/70 rounded w-1/4" />
+      <div className="h-4 bg-slate-900/70 rounded w-1/6" />
     </div>
-    <div className="h-6 bg-slate-900 rounded w-3/4" />
+    <div className="h-6 bg-slate-900/70 rounded w-3/4" />
     <div className="space-y-2">
-      <div className="h-3 bg-slate-900 rounded w-1/2" />
-      <div className="h-3 bg-slate-900 rounded w-1/3" />
+      <div className="h-3 bg-slate-900/70 rounded w-1/2" />
+      <div className="h-3 bg-slate-900/70 rounded w-1/3" />
     </div>
     <div className="flex gap-2 pt-2">
-      <div className="h-9 bg-slate-900 rounded w-1/2" />
-      <div className="h-9 bg-slate-900 rounded w-1/2" />
+      <div className="h-9 bg-slate-900/70 rounded w-1/2" />
+      <div className="h-9 bg-slate-900/70 rounded w-1/2" />
     </div>
   </div>
 );
 
+// Custom Toast Component for UI Feedback
+const Toast = ({ message, type, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.9 }}
+      className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md
+        ${type === 'success' 
+          ? 'bg-emerald-950/90 border-emerald-500/25 text-emerald-400' 
+          : 'bg-indigo-950/90 border-indigo-500/25 text-indigo-400'
+        }`}
+    >
+      <CheckCircle2 className="w-4 h-4 shrink-0" />
+      <span>{message}</span>
+    </motion.div>
+  );
+};
+
 const Events = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  
+  // Local States
   const [events, setEvents] = useState([]);
+  const [clubs, setClubs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [activeTab, setActiveTab] = useState('All Events'); // 'All Events' | 'Joined' | 'Hosted'
-  const [selectedEventId, setSelectedEventId] = useState(null);
-  const [isJoiningLeaving, setIsJoiningLeaving] = useState({});
+  const [activeChip, setActiveChip] = useState('All'); // All, Official Club, Student, University
+  
+  // Secondary Filters
+  const [categoryFilter, setCategoryFilter] = useState('All Categories');
+  const [timeFilter, setTimeFilter] = useState('All Time');
+  const [sortBy, setSortBy] = useState('Newest');
+  
+  // Interactive Local States for immediate user feedback
+  const [localBookmarks, setLocalBookmarks] = useState([]);
+  const [toast, setToast] = useState(null);
+  const [isProcessingId, setIsProcessingId] = useState(null);
 
-  const filters = ['All', 'Live', 'Upcoming', 'Today', 'This Week', 'Tech', 'Cultural', 'Sports', 'Workshops'];
-
-  // Subscribe to real-time events feed
+  // Sync initial bookmarks from currentUser
   useEffect(() => {
-    const unsubscribe = subscribeActivities(
-      (firestoreActivities) => {
-        const categoryColors = {
-          Study: 'blue',
-          Sports: 'emerald',
-          Food: 'pink',
-          Tech: 'indigo',
-          Music: 'purple',
-          Gaming: 'amber',
-          Cultural: 'pink',
-          Workshops: 'blue'
-        };
+    if (currentUser?.bookmarkedEvents) {
+      setLocalBookmarks(currentUser.bookmarkedEvents);
+    }
+  }, [currentUser]);
 
-        const mapped = firestoreActivities.map((act) => ({
-          id: act.id,
-          name: act.name,
-          room: act.room || 'Campus Commons',
-          building: act.building || 'Main Campus',
-          category: act.category,
-          coordinates: [act.latitude, act.longitude],
-          description: act.description,
-          isLive: act.isLive ?? true,
-          color: categoryColors[act.category] || 'indigo',
-          date: act.date || '',
-          startTime: act.startTime || '',
-          endTime: act.endTime || '',
-          creatorName: act.creatorName || 'CampusLive User',
-          createdBy: act.createdBy || '',
-          participants: act.participants || []
-        }));
+  // Subscribe to real-time events feed & clubs
+  useEffect(() => {
+    const unsubscribeClubs = onSnapshot(collection(db, 'clubs'), (snapshot) => {
+      const list = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setClubs(list);
+    });
+
+    const unsubscribeEvents = subscribeActivities(
+      (firestoreActivities) => {
+        // Map Firestore data with safe fallbacks conforming to backend requirements
+        const mapped = firestoreActivities.map((act) => {
+          const eventCategory = act.category || 'Other';
+          const defaultCover = defaultEventCovers[eventCategory] || defaultEventCovers.Other;
+          
+          return {
+            id: act.id,
+            eventId: act.id,
+            title: act.title || act.name || 'Untitled Event',
+            name: act.title || act.name || 'Untitled Event', // legacy fallback
+            description: act.description || 'No description provided.',
+            coverImage: act.coverImage || defaultCover,
+            eventType: act.eventType || 'student', // default student event
+            clubId: act.clubId || null,
+            createdBy: act.createdBy || '',
+            organizerName: act.organizerName || act.creatorName || 'CampusLive User',
+            organizerLogo: act.organizerLogo || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(act.createdBy || act.id)}`,
+            category: eventCategory,
+            date: act.date || '',
+            time: act.time || act.startTime || '',
+            startTime: act.startTime || act.time || '',
+            endTime: act.endTime || '',
+            location: act.location || `${act.room || 'Campus Land'}, ${act.building || 'Campus'}`,
+            latitude: act.latitude || 16.494144,
+            longitude: act.longitude || 80.498191,
+            interestedCount: act.interestedCount ?? (act.participants?.length || 0),
+            participants: act.participants || [],
+            createdAt: act.createdAt ? new Date(act.createdAt.seconds * 1000) : new Date(),
+            updatedAt: act.updatedAt || null
+          };
+        });
 
         setEvents(mapped);
         setIsLoading(false);
@@ -134,330 +164,547 @@ const Events = () => {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeClubs();
+      unsubscribeEvents();
+    };
   }, []);
 
-  // Helper date logic
-  const isToday = (dateStr) => {
-    if (!dateStr) return false;
-    const todayStr = new Date().toISOString().split('T')[0];
-    return dateStr === todayStr;
+  // Helper Toast trigger
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
   };
 
-  const isThisWeek = (dateStr) => {
-    if (!dateStr) return false;
-    const eventDate = new Date(dateStr);
-    const today = new Date();
-    const diffTime = Math.abs(eventDate - today);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 7;
+  // Reset all filters helper
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setActiveChip('All');
+    setCategoryFilter('All Categories');
+    setTimeFilter('All Time');
+    setSortBy('Newest');
+    showToast('Filters reset successfully', 'info');
   };
 
-  // Quick Stats Calculations
-  const stats = useMemo(() => {
-    const live = events.filter(e => e.isLive).length;
-    const upcoming = events.filter(e => !e.isLive && e.date >= new Date().toISOString().split('T')[0]).length;
-    const joined = events.filter(e => e.participants.includes(currentUser?.id)).length;
-    const hosted = events.filter(e => e.createdBy === currentUser?.id).length;
-    return { live, upcoming, joined, hosted };
-  }, [events, currentUser?.id]);
-
-  // Handle Join / Leave
-  const handleJoinLeave = async (e, eventId, hasJoined) => {
+  // Toggle bookmark action
+  const handleToggleBookmark = async (eventId, e) => {
     e.stopPropagation();
-    if (!currentUser?.id || isJoiningLeaving[eventId]) return;
-
-    setIsJoiningLeaving(prev => ({ ...prev, [eventId]: true }));
+    if (!currentUser?.id) return;
+    
+    const isBookmarked = localBookmarks.includes(eventId);
+    const updated = isBookmarked 
+      ? localBookmarks.filter(id => id !== eventId)
+      : [...localBookmarks, eventId];
+      
+    setLocalBookmarks(updated);
+    
     try {
-      if (hasJoined) {
-        await leaveActivity(eventId, currentUser.id);
-      } else {
-        await joinActivity(eventId, currentUser.id);
-      }
+      await updateUserProfile(currentUser.id, {
+        bookmarkedEvents: updated
+      });
+      showToast(
+        isBookmarked ? 'Event removed from bookmarks' : 'Event added to bookmarks', 
+        'success'
+      );
     } catch (err) {
-      console.error('Failed to toggle join/leave:', err);
-    } finally {
-      setIsJoiningLeaving(prev => ({ ...prev, [eventId]: false }));
+      console.error('Error saving bookmark:', err);
+      showToast('Failed to update bookmarks', 'error');
     }
   };
 
-  // Filtered Events
+  // Toggle Interested action (updates Firestore collection)
+  const handleToggleInterest = async (event, e) => {
+    e.stopPropagation();
+    if (!currentUser?.id || isProcessingId) return;
+
+    setIsProcessingId(event.id);
+    const hasJoined = event.participants.includes(currentUser.id);
+    const docRef = doc(db, 'activities', event.id);
+
+    try {
+      if (hasJoined) {
+        await updateDoc(docRef, {
+          participants: arrayRemove(currentUser.id),
+          interestedCount: increment(-1)
+        });
+        showToast('Left the event successfully', 'info');
+      } else {
+        await updateDoc(docRef, {
+          participants: arrayUnion(currentUser.id),
+          interestedCount: increment(1)
+        });
+        showToast('Joined event successfully!', 'success');
+      }
+    } catch (err) {
+      console.error('Error updating interest:', err);
+      showToast('Failed to save interest status', 'error');
+    } finally {
+      setIsProcessingId(null);
+    }
+  };
+
+  // Share Event Action (copies custom URL)
+  const handleShareEvent = (eventId, e) => {
+    e.stopPropagation();
+    const eventUrl = `${window.location.origin}/events/${eventId}`;
+    navigator.clipboard.writeText(eventUrl);
+    showToast('Event link copied to clipboard!', 'success');
+  };
+
+  // Date Check Helpers
+  const dateCheckHelpers = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    const tomorrowObj = new Date();
+    tomorrowObj.setDate(tomorrowObj.getDate() + 1);
+    const tomorrowStr = tomorrowObj.toISOString().split('T')[0];
+
+    const todayDate = new Date();
+    const endOfWeek = new Date();
+    endOfWeek.setDate(todayDate.getDate() + 7);
+
+    return {
+      todayStr,
+      tomorrowStr,
+      endOfWeek
+    };
+  }, []);
+
+  // Filtering & Sorting Logic
   const filteredEvents = useMemo(() => {
-    return events.filter(event => {
-      // 1. Tab Filter
-      if (activeTab === 'Joined' && !event.participants.includes(currentUser?.id)) return false;
-      if (activeTab === 'Hosted' && event.createdBy !== currentUser?.id) return false;
+    return events
+      .filter((event) => {
+        // Enforce member-only visibility for Official Club Events
+        if (event.eventType === 'club') {
+          if (currentUser?.role !== 'supreme_admin' && currentUser?.role !== 'university_admin') {
+            const matchingClub = clubs.find(c => c.clubId === event.clubId);
+            if (!matchingClub || 
+                (!matchingClub.members?.includes(currentUser?.id) && 
+                 !matchingClub.adminIds?.includes(currentUser?.id))) {
+              return false;
+            }
+          }
+        }
+        // 1. Search Query Filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const matchTitle = event.title.toLowerCase().includes(query);
+          const matchDesc = event.description.toLowerCase().includes(query);
+          const matchOrganizer = event.organizerName.toLowerCase().includes(query);
+          const matchCat = event.category.toLowerCase().includes(query);
+          if (!matchTitle && !matchDesc && !matchOrganizer && !matchCat) return false;
+        }
 
-      // 2. Chip Filter
-      if (activeFilter === 'Live' && !event.isLive) return false;
-      if (activeFilter === 'Upcoming' && event.isLive) return false;
-      if (activeFilter === 'Today' && !isToday(event.date)) return false;
-      if (activeFilter === 'This Week' && !isThisWeek(event.date)) return false;
-      if (
-        activeFilter !== 'All' && 
-        activeFilter !== 'Live' && 
-        activeFilter !== 'Upcoming' && 
-        activeFilter !== 'Today' && 
-        activeFilter !== 'This Week' && 
-        event.category.toLowerCase() !== activeFilter.toLowerCase()
-      ) {
-        return false;
-      }
+        // 2. Chip Filter (Event Type Source)
+        if (activeChip !== 'All') {
+          if (activeChip === 'Official Club Events' && event.eventType !== 'club') return false;
+          if (activeChip === 'Student Events' && event.eventType !== 'student') return false;
+          if (activeChip === 'University Events' && event.eventType !== 'university') return false;
+        }
 
-      // 3. Search Query Filter
-      if (searchQuery) {
-        const cleanQuery = searchQuery.toLowerCase();
-        return (
-          event.name.toLowerCase().includes(cleanQuery) ||
-          event.category.toLowerCase().includes(cleanQuery) ||
-          event.description.toLowerCase().includes(cleanQuery) ||
-          event.building.toLowerCase().includes(cleanQuery) ||
-          event.room.toLowerCase().includes(cleanQuery)
-        );
-      }
+        // 3. Category Filter
+        if (categoryFilter !== 'All Categories' && event.category !== categoryFilter) return false;
 
-      return true;
-    });
-  }, [events, activeFilter, activeTab, searchQuery, currentUser?.id]);
+        // 4. Time Filter
+        if (timeFilter !== 'All Time') {
+          const { todayStr, tomorrowStr, endOfWeek } = dateCheckHelpers;
+          const eventDateStr = event.date;
+
+          if (timeFilter === 'Today' && eventDateStr !== todayStr) return false;
+          if (timeFilter === 'Tomorrow' && eventDateStr !== tomorrowStr) return false;
+          
+          if (timeFilter === 'This Week') {
+            const evDate = new Date(eventDateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (evDate < today || evDate > endOfWeek) return false;
+          }
+
+          if (timeFilter === 'This Month') {
+            const evDate = new Date(eventDateStr);
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            if (evDate.getMonth() !== currentMonth || evDate.getFullYear() !== currentYear) return false;
+          }
+
+          if (timeFilter === 'Upcoming') {
+            const evDate = new Date(eventDateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (evDate < today) return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        // 5. Sorting
+        if (sortBy === 'Newest') {
+          return b.createdAt - a.createdAt;
+        }
+        if (sortBy === 'Most Popular') {
+          return b.interestedCount - a.interestedCount;
+        }
+        if (sortBy === 'Closest Date') {
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(a.date) - new Date(b.date);
+        }
+        return 0;
+      });
+  }, [events, searchQuery, activeChip, categoryFilter, timeFilter, sortBy, dateCheckHelpers]);
 
   return (
-    <div className="space-y-8 font-sans text-gray-300 pb-16 select-none max-w-7xl mx-auto">
+    <div className="space-y-8 font-sans text-slate-300 pb-16 select-none max-w-7xl mx-auto text-left relative z-10">
       
-      {/* ─── 1. Header ─── */}
+      {/* Toast Feedback */}
+      <AnimatePresence>
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ─── Header ─── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="text-left">
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Events</h1>
-          <p className="text-xs text-gray-500 mt-1">Discover, join, and organize campus events.</p>
+        <div>
+          <h1 className="text-4xl font-black text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            Campus Events
+          </h1>
+          <p className="text-sm text-slate-500 mt-1.5 font-medium">
+            Discover everything happening across campus in one place.
+          </p>
         </div>
+        
         <button
           onClick={() => navigate('/map?select=true')}
-          className="h-10 px-4 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-500/15 transition-all cursor-pointer active:scale-95 self-start md:self-auto"
+          className="h-11 px-5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer hover:scale-102 active:scale-95 self-start md:self-auto"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4.5 h-4.5" />
           <span>Create Event</span>
         </button>
       </div>
 
-      {/* ─── 2. Quick Stats Grid ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Live Now', value: stats.live, icon: Activity, color: 'text-rose-400 bg-[#080b11] border-slate-900/80' },
-          { label: 'Upcoming', value: stats.upcoming, icon: Calendar, color: 'text-indigo-400 bg-[#080b11] border-slate-900/80' },
-          { label: 'Joined', value: stats.joined, icon: Users, color: 'text-emerald-400 bg-[#080b11] border-slate-900/80' },
-          { label: 'Hosted', value: stats.hosted, icon: Award, color: 'text-amber-450 bg-[#080b11] border-slate-900/80' }
-        ].map((item, idx) => {
-          const Icon = item.icon;
-          return (
-            <div key={idx} className={`p-4 rounded-2xl border ${item.color} flex items-center justify-between`}>
-              <div className="text-left">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{item.label}</span>
-                <p className="text-2xl font-black text-white mt-1.5 leading-none">
-                  <AnimatedCounter value={item.value} />
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-center">
-                <Icon className="w-4 h-4" />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ─── 3. Search & Tabs & Filter Chips ─── */}
-      <div className="p-4 rounded-2xl bg-[#080b11] border border-slate-900 shadow-md space-y-4">
-        {/* Search & Tabs Row */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-9 pr-4 rounded-lg bg-[#06090f] border border-slate-900 text-slate-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/80 transition-all text-xs font-semibold"
-            />
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex p-0.5 rounded-lg bg-slate-950 border border-slate-900 w-fit shrink-0">
-            {['All Events', 'Joined', 'Hosted'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer
-                  ${activeTab === tab 
-                    ? 'bg-slate-900 text-white shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-350'
-                  }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+      {/* ─── Search & Primary Chips ─── */}
+      <div className="p-5 rounded-2xl bg-[#080b11]/60 border border-slate-900/80 shadow-2xl backdrop-blur-xl space-y-5">
+        
+        {/* Search Input */}
+        <div className="relative w-full">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search events, clubs or organizers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-11 pl-11 pr-4 rounded-xl bg-slate-950/40 border border-slate-900/85 text-slate-100 placeholder-slate-650 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-550/20 transition-all text-xs font-semibold"
+          />
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-slate-900" />
+        <div className="h-px bg-slate-900/60" />
 
-        {/* Filter Chips Scroll container */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
-          <div className="flex gap-1.5">
-            {filters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer whitespace-nowrap
-                  ${activeFilter === filter 
-                    ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-400 shadow-sm shadow-indigo-500/5' 
-                    : 'bg-slate-950/40 border-slate-900 text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'
-                  }`}
-              >
-                {filter}
-              </button>
-            ))}
+        {/* Filter Chips Horizontal scroll wrapper */}
+        <div className="overflow-x-auto scrollbar-none py-0.5">
+          <div className="flex gap-2 min-w-max">
+            {[
+              { id: 'All', label: 'All' },
+              { id: 'Official Club Events', label: 'Official Club Events' },
+              { id: 'Student Events', label: 'Student Events' },
+              { id: 'University Events', label: 'University Events' }
+            ].map((chip) => {
+              const isSelected = activeChip === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => setActiveChip(chip.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer
+                    ${isSelected
+                      ? 'bg-gradient-to-tr from-indigo-500 to-purple-600 border-transparent text-white shadow-lg shadow-indigo-500/20'
+                      : 'bg-slate-950/40 border-slate-900 text-slate-500 hover:text-slate-300 hover:bg-slate-900/30'
+                    }`}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* ─── 4. Events Feed Grid ─── */}
+      {/* ─── Secondary Filters Row ─── */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#080b11]/30 border border-slate-900/40">
+        <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Category Dropdown */}
+          <div className="relative group">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="appearance-none pl-3 pr-8 h-9 rounded-lg bg-slate-950/60 border border-slate-900 text-[11px] font-bold text-slate-400 hover:text-slate-200 transition-all cursor-pointer focus:outline-none focus:border-indigo-500/40"
+            >
+              <option value="All Categories">All Categories</option>
+              {eventCategories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-550 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Time Dropdown */}
+          <div className="relative group">
+            <select
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value)}
+              className="appearance-none pl-3 pr-8 h-9 rounded-lg bg-slate-950/60 border border-slate-900 text-[11px] font-bold text-slate-400 hover:text-slate-200 transition-all cursor-pointer focus:outline-none focus:border-indigo-500/40"
+            >
+              <option value="All Time">All Time</option>
+              <option value="Today">Today</option>
+              <option value="Tomorrow">Tomorrow</option>
+              <option value="This Week">This Week</option>
+              <option value="This Month">This Month</option>
+              <option value="Upcoming">Upcoming</option>
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-550 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Reset Filters Shortcut */}
+          {(searchQuery || activeChip !== 'All' || categoryFilter !== 'All Categories' || timeFilter !== 'All Time') && (
+            <button
+              onClick={handleResetFilters}
+              className="h-9 px-3 rounded-lg border border-rose-500/10 hover:border-rose-500/20 text-rose-450 hover:bg-rose-500/5 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+            >
+              <X className="w-3 h-3" />
+              <span>Reset</span>
+            </button>
+          )}
+
+        </div>
+
+        {/* Sort By Dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-550 flex items-center gap-1">
+            <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
+            Sort:
+          </span>
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="appearance-none pl-3 pr-8 h-9 rounded-lg bg-slate-950/60 border border-slate-900 text-[11px] font-bold text-slate-350 focus:outline-none cursor-pointer focus:border-indigo-500/40"
+            >
+              <option value="Newest">Newest</option>
+              <option value="Most Popular">Most Popular</option>
+              <option value="Closest Date">Closest Date</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-550 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+
+      </div>
+
+      {/* ─── Events Feed Grid ─── */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ActivityCardSkeleton />
+          <ActivityCardSkeleton />
+          <ActivityCardSkeleton />
           <ActivityCardSkeleton />
           <ActivityCardSkeleton />
           <ActivityCardSkeleton />
         </div>
       ) : filteredEvents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEvents.map((event) => {
-            const hasJoined = event.participants?.includes(currentUser?.id);
-            const isWorking = isJoiningLeaving[event.id];
+          <AnimatePresence>
+            {filteredEvents.map((event) => {
+              const isBookmarked = localBookmarks.includes(event.id);
+              const hasInterested = event.participants.includes(currentUser?.id);
+              const isWorking = isProcessingId === event.id;
 
-            return (
-              <div 
-                key={event.id}
-                onClick={() => setSelectedEventId(event.id)}
-                className="group p-5 rounded-2xl border border-slate-900 bg-[#080b11] hover:border-slate-800 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:-translate-y-0.5 shadow-sm text-left"
-              >
-                {/* Visual Header / Banner representation */}
-                <div className="relative h-28 w-full rounded-xl bg-slate-900/80 border border-slate-850 overflow-hidden flex-shrink-0">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${accentGradients[event.color]} opacity-20 group-hover:opacity-25 transition-opacity`} />
-                  <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:12px_12px]" />
+              // Type Badges styling
+              let badgeColor = 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+              let badgeLabel = 'Student Event';
+              if (event.eventType === 'club') {
+                badgeColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+                badgeLabel = 'Official Club';
+              } else if (event.eventType === 'university') {
+                badgeColor = 'text-purple-400 bg-purple-500/10 border-purple-500/20';
+                badgeLabel = 'University Event';
+              }
+
+              return (
+                <motion.div
+                  key={event.id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.28, ease: 'easeOut' }}
+                  onClick={() => navigate(`/events/${event.id}`)}
+                  className="group relative rounded-2xl border border-slate-900 bg-[#080b11]/70 hover:border-slate-800 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-indigo-500/5"
+                >
                   
-                  {/* Category & Status badges inside card banner */}
-                  <div className="absolute top-3 left-3 flex gap-1.5 z-10">
-                    <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
-                      ${event.isLive 
-                        ? 'bg-rose-500/10 text-rose-455 border-rose-500/20' 
-                        : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                      }`}
+                  {/* Event Cover Image */}
+                  <div className="relative h-44 w-full overflow-hidden shrink-0 bg-slate-950">
+                    <img
+                      src={event.coverImage}
+                      alt={event.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    
+                    {/* Glassy Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#080b11] via-black/10 to-transparent pointer-events-none" />
+
+                    {/* Bookmark Toggle Overlay button */}
+                    <button
+                      onClick={(e) => handleToggleBookmark(event.id, e)}
+                      className={`absolute top-3 right-3 p-2 rounded-xl backdrop-blur-md transition-all border shadow-md active:scale-90 cursor-pointer
+                        ${isBookmarked 
+                          ? 'bg-gradient-to-tr from-indigo-500 to-purple-600 border-transparent text-white' 
+                          : 'bg-black/50 border-slate-800/80 text-slate-400 hover:text-white'
+                        }`}
                     >
-                      {event.isLive ? '● Live' : 'Upcoming'}
-                    </span>
-                    <span className="text-[8px] bg-slate-950/80 border border-slate-850 text-slate-300 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded">
+                      <Bookmark className="w-4 h-4 fill-current" />
+                    </button>
+
+                    {/* Category Label Overlay */}
+                    <span className="absolute bottom-3 left-3 text-[9px] bg-slate-950/80 border border-slate-900/60 text-slate-200 font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg backdrop-blur-sm shadow-sm">
                       {event.category}
                     </span>
+
+                    {/* Scope / Type badge */}
+                    <span className={`absolute top-3 left-3 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg border backdrop-blur-sm shadow-sm flex items-center gap-1 ${badgeColor}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      <span>{badgeLabel}</span>
+                    </span>
                   </div>
 
-                  <div className="absolute bottom-3 right-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
-                    <Users className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>{event.participants?.length || 0} Joined</span>
-                  </div>
-                </div>
+                  {/* Body Content */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    
+                    {/* Title & Description */}
+                    <div className="space-y-2">
+                      <h3 className="text-base font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-1 leading-snug">
+                        {event.title}
+                      </h3>
+                      <p className="text-[11px] text-slate-450 line-clamp-2 leading-relaxed font-medium">
+                        {event.description}
+                      </p>
+                    </div>
 
-                {/* Event info */}
-                <div className="space-y-2 flex-1">
-                  <h3 className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-1">
-                    {event.name}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed font-medium">
-                    {event.description || 'No description provided.'}
-                  </p>
-                </div>
+                    {/* Organizer Profile Details */}
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/30 border border-slate-900/40">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={event.organizerLogo}
+                          alt={event.organizerName}
+                          className="w-7 h-7 rounded-lg object-cover bg-slate-900 border border-slate-800 shrink-0"
+                        />
+                        <div className="min-w-0 text-left">
+                          <p className="text-[10px] text-gray-550 font-bold uppercase tracking-wider leading-none">Organizer</p>
+                          <span className="text-xs font-bold text-slate-200 mt-1 truncate block flex items-center gap-1">
+                            {event.organizerName}
+                            {event.eventType === 'club' && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 fill-emerald-500/10" title="Verified Organizer" />
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Metadata Row */}
-                <div className="pt-2 border-t border-slate-900/60 space-y-2 text-[10px] font-semibold text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                    <span className="truncate">{event.building} · {event.room}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                    <span>{event.date} · {formatTime12h(event.startTime)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                    <span className="truncate">Organized by {event.creatorName}</span>
-                  </div>
-                </div>
+                    {/* Metadata Items */}
+                    <div className="space-y-2.5 text-[10px] font-bold text-slate-500 border-t border-slate-900/60 pt-3">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span>{event.date} · {formatTime12h(event.startTime)}</span>
+                      </div>
+                    </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => setSelectedEventId(event.id)}
-                    className="flex-1 h-9 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-850 text-white font-bold text-[10px] tracking-wider uppercase flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <span>View Details</span>
-                  </button>
-                  <button
-                    onClick={(e) => handleJoinLeave(e, event.id, hasJoined)}
-                    disabled={isWorking}
-                    className={`flex-1 h-9 rounded-xl text-white font-bold text-[10px] tracking-wider uppercase transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95
-                      ${hasJoined 
-                        ? 'bg-rose-500/10 border border-rose-500/20 text-rose-450 hover:bg-rose-500/20 shadow-rose-500/5' 
-                        : `bg-gradient-to-tr ${accentGradients[event.color] || 'from-indigo-500 to-purple-600'} hover:opacity-90`
-                      }`}
-                  >
-                    {isWorking ? (
-                      <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : hasJoined ? (
-                      <>
-                        <X className="w-3 h-3" />
-                        <span>Leave</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Join</span>
-                        <ArrowUpRight className="w-3 h-3" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="px-5 pb-5 pt-1.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => navigate(`/events/${event.id}`)}
+                      className="flex-1 h-9 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-900 text-white font-extrabold text-[10px] tracking-widest uppercase flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95"
+                    >
+                      <span>Details</span>
+                    </button>
+                    
+                    <button
+                      disabled={isWorking}
+                      onClick={(e) => handleToggleInterest(event, e)}
+                      className={`flex-1 h-9 rounded-xl text-white font-extrabold text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 border
+                        ${hasInterested
+                          ? 'bg-rose-500/10 border-rose-500/20 text-rose-450 hover:bg-rose-500/25 shadow-rose-500/5'
+                          : `bg-gradient-to-tr ${accentGradients[categoryColors[event.category]] || 'from-indigo-500 to-purple-600'} border-transparent hover:opacity-90`
+                        }`}
+                    >
+                      {isWorking ? (
+                        <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : hasInterested ? (
+                        <span>Joined</span>
+                      ) : (
+                        <span>Join Event</span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={(e) => handleShareEvent(event.id, e)}
+                      className="p-2 h-9 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-400 hover:text-white transition-all cursor-pointer active:scale-90"
+                      title="Share Event"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Interested count footer banner */}
+                  <div className="px-5 py-2 bg-slate-950/60 border-t border-slate-900/60 text-[9px] font-bold text-slate-500 flex items-center gap-1.5 justify-between">
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3 text-indigo-400" />
+                      <span>{event.interestedCount} Joined</span>
+                    </span>
+                    <span className="uppercase tracking-widest text-[8px] text-slate-600">
+                      ID: {event.id.slice(0, 8)}
+                    </span>
+                  </div>
+
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       ) : (
         /* Empty State */
-        <div className="py-16 text-center border border-dashed border-slate-900/60 rounded-3xl bg-[#080b11]/20 backdrop-blur-md flex flex-col items-center justify-center gap-4 max-w-xl mx-auto">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/5 border border-indigo-500/15 flex items-center justify-center text-indigo-400">
-            <Compass className="w-7 h-7" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="py-16 text-center border border-dashed border-slate-900/80 rounded-3xl bg-[#080b11]/30 backdrop-blur-md flex flex-col items-center justify-center gap-5 max-w-lg mx-auto"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-inner">
+            <Compass className="w-8 h-8 animate-pulse" />
           </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-white">No events found</h3>
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-bold text-white">No events found</h3>
             <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
-              Try changing your filters or create a new event.
+              We couldn't find any events matching your selected filter parameters or search queries.
             </p>
           </div>
           <button
-            onClick={() => navigate('/map?select=true')}
-            className="h-10 px-4 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-500/15 transition-all cursor-pointer active:scale-95"
+            onClick={handleResetFilters}
+            className="h-10 px-5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-750 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-500/15 transition-all cursor-pointer active:scale-95"
           >
-            <Plus className="w-4 h-4" />
-            <span>Create Event</span>
+            <span>Reset Filters</span>
           </button>
-        </div>
+        </motion.div>
       )}
 
-      {/* ─── 5. Event Details Overlay ─── */}
-      <EventDetailDrawer
-        isOpen={!!selectedEventId}
-        onClose={() => setSelectedEventId(null)}
-        event={events.find(e => e.id === selectedEventId)}
-        currentUserId={currentUser?.id}
-        currentUser={currentUser}
-        onDelete={deleteActivity}
-      />
     </div>
   );
 };

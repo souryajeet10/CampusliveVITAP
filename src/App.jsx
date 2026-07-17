@@ -14,6 +14,11 @@ const WhatsNext = lazy(() => import('./pages/WhatsNext'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Events = lazy(() => import('./pages/Events'));
+const EventDetail = lazy(() => import('./pages/EventDetail'));
+const Clubs = lazy(() => import('./pages/Clubs'));
+const ClubDetail = lazy(() => import('./pages/ClubDetail'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Announcements = lazy(() => import('./pages/Announcements'));
 
 const APP_ENTER = {
   initial: { opacity: 0, y: 24 },
@@ -72,6 +77,11 @@ function AppContent() {
                     <Route path="map" element={<CampusMap />} />
                     <Route path="lost-found" element={<LostFound />} />
                     <Route path="events" element={<Events />} />
+                    <Route path="events/:eventId" element={<EventDetail />} />
+                    <Route path="clubs" element={<Clubs />} />
+                    <Route path="clubs/:clubId" element={<ClubDetail />} />
+                    <Route path="admin" element={<Admin />} />
+                    <Route path="announcements" element={<Announcements />} />
                     <Route path="whats-next" element={<WhatsNext />} />
                     <Route path="settings" element={<Settings />} />
                   </Route>

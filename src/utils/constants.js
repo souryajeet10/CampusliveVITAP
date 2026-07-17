@@ -21,7 +21,48 @@ export const accentGradients = {
   emerald: 'from-emerald-500 to-teal-600',
   blue: 'from-blue-500 to-indigo-600',
   amber: 'from-amber-500 to-orange-600',
+  cyan: 'from-cyan-500 to-blue-600',
+  violet: 'from-violet-500 to-purple-700',
+  fuchsia: 'from-fuchsia-500 to-pink-600',
+  slate: 'from-slate-500 to-slate-700',
 };
+
+export const eventCategories = [
+  'Technical',
+  'Cultural',
+  'Sports',
+  'Workshop',
+  'Seminar',
+  'Competition',
+  'Social',
+  'Entertainment',
+  'Other'
+];
+
+export const categoryColors = {
+  Technical: 'indigo',
+  Cultural: 'pink',
+  Sports: 'emerald',
+  Workshop: 'blue',
+  Seminar: 'cyan',
+  Competition: 'amber',
+  Social: 'violet',
+  Entertainment: 'fuchsia',
+  Other: 'slate',
+};
+
+export const defaultEventCovers = {
+  Technical: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=800&auto=format&fit=crop&q=60',
+  Cultural: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60',
+  Sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop&q=60',
+  Workshop: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&auto=format&fit=crop&q=60',
+  Seminar: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60',
+  Competition: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60',
+  Social: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=60',
+  Entertainment: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60',
+  Other: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=60',
+};
+
 
 export const iconMapping = {
   Sparkles,

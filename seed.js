@@ -99,6 +99,8 @@ async function seed() {
     await cleanCollection('users');
     await cleanCollection('activities');
     await cleanCollection('lost_found_pins');
+    await cleanCollection('clubs');
+    await cleanCollection('club_announcements');
 
     // 3. Seed Users
     console.log('Seeding user profiles...');
@@ -119,7 +121,7 @@ async function seed() {
       department: 'Electronics (ECE)',
       year: '📘 Second Year',
       avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Aarav',
-      role: 'user',
+      role: 'club_admin',
       createdAt: serverTimestamp()
     });
 
@@ -138,7 +140,7 @@ async function seed() {
     const departments = ['Computer Science (CSE)', 'Electronics (ECE)', 'Mechanical (ME)', 'Biotechnology (BT)', 'Business (BBA)', 'Liberal Arts'];
     const years = ['🌱 Fresher 1st year', '📘 Second Year', '🚀 3rd year', '🎓 Senior (Final Year)'];
 
-    for (let i = 1; i <= 50; i++) {
+    for (let i = 1; i <= 200; i++) {
       const fName = firstNames[Math.floor(Math.random() * firstNames.length)];
       const lName = lastNames[Math.floor(Math.random() * lastNames.length)];
       const name = `${fName} ${lName}`;
@@ -658,10 +660,291 @@ async function seed() {
       }
     ];
 
+    const categoryMap = {
+      'Tech': 'Technical',
+      'Sports': 'Sports',
+      'Music': 'Entertainment',
+      'Food': 'Social',
+      'Cultural': 'Cultural',
+      'Workshops': 'Workshop',
+      'Gaming': 'Entertainment'
+    };
+
+    const defaultCovers = {
+      Technical: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=800&auto=format&fit=crop&q=60',
+      Cultural: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60',
+      Sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop&q=60',
+      Workshop: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&auto=format&fit=crop&q=60',
+      Seminar: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60',
+      Competition: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60',
+      Social: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=60',
+      Entertainment: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60',
+      Other: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=60',
+    };
+
+    const clubNames = [
+      'Coding Club',
+      'Photography Club',
+      'Robotics Club',
+      'Music Society',
+      'Sports Club',
+      'Cultural Club',
+      'Gaming Alliance'
+    ];
+
     for (const act of activities) {
-      await addDoc(collection(db, 'activities'), act);
+      const newCategory = categoryMap[act.category] || 'Other';
+      
+      // Determine Event Type
+      let eventType = 'student';
+      let organizerName = act.creatorName;
+      let clubId = null;
+      
+      const lowerName = act.name.toLowerCase();
+      if (lowerName.includes('seminar') || lowerName.includes('orientation') || lowerName.includes('expo') || lowerName.includes('showcase') || act.createdBy === 'CL-PFWV-TFYY') {
+        eventType = 'university';
+        organizerName = 'VIT-AP Administration';
+      } else if (lowerName.includes('club') || lowerName.includes('tournament') || lowerName.includes('hackathon') || lowerName.includes('bootcamp') || act.createdBy === 'CL-AAAA-1111') {
+        eventType = 'club';
+        organizerName = clubNames[Math.floor(Math.random() * clubNames.length)];
+        clubId = 'club_' + organizerName.toLowerCase().replace(/ /g, '_');
+      }
+      
+      // Setup organizer logo
+      let organizerLogo = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(act.createdBy)}`;
+      if (eventType === 'university') {
+        organizerLogo = 'https://api.dicebear.com/7.x/initials/svg?seed=VITAP';
+      } else if (eventType === 'club') {
+        organizerLogo = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(organizerName)}`;
+      }
+      
+      // Select cover image
+      const coverImage = defaultCovers[newCategory] || defaultCovers.Other;
+      
+      const enrichedEvent = {
+        ...act,
+        title: act.name,
+        category: newCategory,
+        eventType,
+        clubId,
+        organizerName,
+        organizerLogo,
+        coverImage,
+        location: `${act.room}, ${act.building}`,
+        interestedCount: act.participants.length,
+        updatedAt: serverTimestamp()
+      };
+      
+      await addDoc(collection(db, 'activities'), enrichedEvent);
     }
     console.log(`Successfully seeded ${activities.length} activities.`);
+
+    const getClubMembers = (adminIds) => {
+      const list = new Set(adminIds);
+      const targetSize = Math.min(seededUserIds.length, Math.floor(Math.random() * 50) + 30); // 30-80 members
+      while (list.size < targetSize) {
+        const randomId = seededUserIds[Math.floor(Math.random() * seededUserIds.length)];
+        list.add(randomId);
+      }
+      return Array.from(list);
+    };
+
+    const clubs = [
+      {
+        clubId: 'club_coding_club',
+        name: 'Coding Club',
+        category: 'Technical',
+        description: 'The premier software development and competitive programming hub on campus. We build apps, host hackathons, and learn together.',
+        coverImage: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=800&auto=format&fit=crop&q=60',
+        logo: 'https://api.dicebear.com/7.x/identicon/svg?seed=CodingClub',
+        members: getClubMembers(['CL-AAAA-1111', 'CL-BBBB-2222', 'CL-PFWV-TFYY']),
+        joinRequests: [],
+        adminIds: ['CL-AAAA-1111'],
+        presidentId: 'CL-AAAA-1111',
+        presidentName: 'Aarav Sharma',
+        presidentAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Aarav',
+        secretaryId: 'CL-BBBB-2222',
+        secretaryName: 'Rohan Mehta',
+        secretaryAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rohan',
+        instagram: '@CodingClub_VITAP',
+        discord: 'coding-club-server',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        clubId: 'club_photography_club',
+        name: 'Photography Club',
+        category: 'Cultural',
+        description: "Capturing life's moments. We organize photo walks, capture events, host workshops on editing, and run annual exhibitions.",
+        coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60',
+        logo: 'https://api.dicebear.com/7.x/identicon/svg?seed=PhotographyClub',
+        members: getClubMembers(['CL-BBBB-2222']),
+        joinRequests: [],
+        adminIds: ['CL-BBBB-2222'],
+        presidentId: 'CL-BBBB-2222',
+        presidentName: 'Rohan Mehta',
+        presidentAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rohan',
+        secretaryId: 'CL-AAAA-1111',
+        secretaryName: 'Aarav Sharma',
+        secretaryAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Aarav',
+        instagram: '@Photography_VITAP',
+        discord: 'photo-club-server',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        clubId: 'club_robotics_club',
+        name: 'Robotics Club',
+        category: 'Technical',
+        description: 'Design, build, and program autonomous robots. From microcontrollers to quadcopters, we explore hardware and software integrations.',
+        coverImage: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=60',
+        logo: 'https://api.dicebear.com/7.x/identicon/svg?seed=RoboticsClub',
+        members: getClubMembers(['CL-AAAA-1111']),
+        joinRequests: [],
+        adminIds: ['CL-AAAA-1111'],
+        presidentId: 'CL-AAAA-1111',
+        presidentName: 'Aarav Sharma',
+        presidentAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Aarav',
+        secretaryId: 'CL-BBBB-2222',
+        secretaryName: 'Rohan Mehta',
+        secretaryAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rohan',
+        instagram: '@Robotics_VITAP',
+        discord: 'robotics-server',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        clubId: 'club_music_society',
+        name: 'Music Society',
+        category: 'Entertainment',
+        description: 'For the love of melodies. We host open mics, acoustic sessions, vocal coaching workshops, and perform at campus cultural fests.',
+        coverImage: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60',
+        logo: 'https://api.dicebear.com/7.x/identicon/svg?seed=MusicSociety',
+        members: getClubMembers(['CL-BBBB-2222']),
+        joinRequests: [],
+        adminIds: ['CL-BBBB-2222'],
+        presidentId: 'CL-BBBB-2222',
+        presidentName: 'Rohan Mehta',
+        presidentAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rohan',
+        secretaryId: 'CL-AAAA-1111',
+        secretaryName: 'Aarav Sharma',
+        secretaryAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Aarav',
+        instagram: '@MusicSociety_VITAP',
+        discord: 'music-society-server',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        clubId: 'club_sports_club',
+        name: 'Sports Club',
+        category: 'Sports',
+        description: 'Promoting physical fitness, sportsmanship, and teamwork. We coordinate inter-hostel tournaments and practice drill sessions.',
+        coverImage: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop&q=60',
+        logo: 'https://api.dicebear.com/7.x/identicon/svg?seed=SportsClub',
+        members: getClubMembers(['CL-AAAA-1111', 'CL-BBBB-2222']),
+        joinRequests: [],
+        adminIds: ['CL-AAAA-1111'],
+        presidentId: 'CL-AAAA-1111',
+        presidentName: 'Aarav Sharma',
+        presidentAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Aarav',
+        secretaryId: 'CL-BBBB-2222',
+        secretaryName: 'Rohan Mehta',
+        secretaryAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rohan',
+        instagram: '@SportsClub_VITAP',
+        discord: 'sports-club-server',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        clubId: 'club_cultural_club',
+        name: 'Cultural Club',
+        category: 'Cultural',
+        description: 'Celebrating heritage and fine arts. We host dramas, traditional fests, dance workshops, and design campus decorations.',
+        coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60',
+        logo: 'https://api.dicebear.com/7.x/identicon/svg?seed=CulturalClub',
+        members: getClubMembers(['CL-PFWV-TFYY']),
+        joinRequests: [],
+        adminIds: ['CL-PFWV-TFYY'],
+        presidentId: 'CL-PFWV-TFYY',
+        presidentName: 'Souryajeet Singh',
+        presidentAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Souryajeet',
+        secretaryId: 'CL-BBBB-2222',
+        secretaryName: 'Rohan Mehta',
+        secretaryAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rohan',
+        instagram: '@CulturalClub_VITAP',
+        discord: 'cultural-club-server',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        clubId: 'club_gaming_alliance',
+        name: 'Gaming Alliance',
+        category: 'Entertainment',
+        description: 'Connecting gamers across campus. We host LAN tournaments, competitive esports lobbies, and casual board game nights.',
+        coverImage: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60',
+        logo: 'https://api.dicebear.com/7.x/identicon/svg?seed=GamingAlliance',
+        members: getClubMembers(['CL-BBBB-2222']),
+        joinRequests: [],
+        adminIds: ['CL-BBBB-2222'],
+        presidentId: 'CL-BBBB-2222',
+        presidentName: 'Rohan Mehta',
+        presidentAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rohan',
+        secretaryId: 'CL-AAAA-1111',
+        secretaryName: 'Aarav Sharma',
+        secretaryAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Aarav',
+        instagram: '@GamingAlliance_VITAP',
+        discord: 'gaming-alliance-server',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    for (const club of clubs) {
+      await setDoc(doc(db, 'clubs', club.clubId), club);
+    }
+    console.log(`Successfully seeded ${clubs.length} official clubs.`);
+
+    // 4.6. Seed Announcements
+    console.log('Seeding club announcements...');
+    const announcements = [
+      {
+        clubId: 'club_coding_club',
+        title: 'AI Hackathon 2026 Registration Live!',
+        content: 'Registration is now officially open for the flagship AI Agents Hackathon! Sign up your teams of 2-4 in the tech lab before Friday. Free pizzas and energy drinks will be provided.',
+        createdBy: 'CL-AAAA-1111',
+        creatorName: 'Aarav Sharma',
+        createdAt: new Date(Date.now() - 3600000 * 2) // 2 hours ago
+      },
+      {
+        clubId: 'club_coding_club',
+        title: 'Vite & React Bootcamp Materials',
+        content: 'Thanks to everyone who joined the Web Development bootcamp. You can find the slides and source code repository linked in the resources tab of our club page.',
+        createdBy: 'CL-AAAA-1111',
+        creatorName: 'Aarav Sharma',
+        createdAt: new Date(Date.now() - 3600000 * 24) // 1 day ago
+      },
+      {
+        clubId: 'club_sports_club',
+        title: 'Inter-Department Football Trials',
+        content: 'Selections for the core university football squad begin tomorrow at 5 PM at Turf A. Please bring your personal kit, studs, and shin guards.',
+        createdBy: 'CL-AAAA-1111',
+        creatorName: 'Aarav Sharma',
+        createdAt: new Date(Date.now() - 3600000 * 4) // 4 hours ago
+      },
+      {
+        clubId: 'club_music_society',
+        title: 'Acoustic Jam Night Auditions',
+        content: 'Auditions for contemporary pop guitarists and vocalists to perform at the Open Air Theatre showcase will take place in SAC Room 102 from 3 to 6 PM on Thursday.',
+        createdBy: 'CL-BBBB-2222',
+        creatorName: 'Rohan Mehta',
+        createdAt: new Date(Date.now() - 3600000 * 12) // 12 hours ago
+      }
+    ];
+
+    for (const ann of announcements) {
+      await addDoc(collection(db, 'club_announcements'), ann);
+    }
+    console.log(`Successfully seeded ${announcements.length} announcements.`);
 
     // 5. Seed Lost & Found (Total 15 items)
     console.log('Seeding 15 lost & found reports...');

@@ -8,7 +8,9 @@ import {
   ChevronRight, 
   LogOut,
   Sparkles,
-  Inbox
+  Inbox,
+  Users,
+  Megaphone
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import CampusLiveIcon from './common/CampusLiveIcon';
@@ -20,12 +22,14 @@ const sections = [
       { name: 'Dashboard', path: '/', icon: Home },
       { name: 'Campus Map', path: '/map', icon: MapPin },
       { name: 'Events', path: '/events', icon: Calendar },
+      { name: 'Announcements', path: '/announcements', icon: Megaphone },
     ],
   },
   {
     label: 'Community',
     items: [
       { name: 'Lost & Found', path: '/lost-found', icon: Inbox },
+      { name: 'Clubs', path: '/clubs', icon: Users },
       { name: "What's Next", path: '/whats-next', icon: Sparkles },
     ],
   },

@@ -28,9 +28,11 @@ import {
   CAMPUS_POLYGON,
   accentGradients,
   iconMapping,
-  mockEvents
+  mockEvents,
+  categoryColors
 } from '../utils/constants';
-import { auth } from '../firebase/firebase';
+import { db } from '../firebase/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { addActivity, subscribeActivities, joinActivity, deleteActivity } from '../services/activityService';
 import EventDetailDrawer from '../components/EventDetailDrawer';
 import CreateActivityModal from '../components/CreateActivityModal';
@@ -273,8 +275,21 @@ const tempMarkerIcon = L.divIcon({
 const CampusMap = () => {
   const location = useLocation();
   const [events, setEvents] = useState([]);
+  const [clubs, setClubs] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMapSelectionMode, setIsMapSelectionMode] = useState(false);
+
+  // Subscribe to clubs
+  useEffect(() => {
+    const unsubscribeClubs = onSnapshot(collection(db, 'clubs'), (snapshot) => {
+      const list = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setClubs(list);
+    });
+    return () => unsubscribeClubs();
+  }, []);
 
   useEffect(() => {
     if (location.search.includes('select=true')) {
@@ -335,26 +350,21 @@ const CampusMap = () => {
   useEffect(() => {
     const unsubscribe = subscribeActivities(
       (firestoreActivities) => {
-        const categoryColors = {
-          Study: 'blue',
-          Sports: 'emerald',
-          Food: 'pink',
-          Tech: 'indigo',
-          Music: 'purple',
-          Gaming: 'amber'
-        };
         const iconNames = {
-          Study: 'Calendar',
+          Technical: 'Sparkles',
+          Cultural: 'Flame',
           Sports: 'Trophy',
-          Food: 'Flame',
-          Tech: 'Sparkles',
-          Music: 'Flame',
-          Gaming: 'Trophy'
+          Workshop: 'Calendar',
+          Seminar: 'Calendar',
+          Competition: 'Trophy',
+          Social: 'Flame',
+          Entertainment: 'Flame',
+          Other: 'Sparkles'
         };
 
         const mapped = firestoreActivities.map((act) => ({
           id: act.id,
-          name: act.name,
+          name: act.title || act.name,
           room: act.room || 'Campus Commons',
           category: act.category,
           coordinates: [act.latitude, act.longitude],
@@ -374,7 +384,9 @@ const CampusMap = () => {
           participantCount: (act.participants || []).length,
           createdBy: act.createdBy || '',
           creatorName: act.creatorName || 'CampusLive User',
-          building: act.building || 'Campus Landmark'
+          building: act.building || 'Campus Landmark',
+          eventType: act.eventType || 'student',
+          clubId: act.clubId || null
         }));
 
         setEvents(mapped);
@@ -429,19 +441,10 @@ const CampusMap = () => {
     setIsSubmitting(true);
     try {
       const finalData = {
-        name: activityData.name,
-        room: activityData.room,
-        building: activityData.building || 'Campus Landmark',
-        category: activityData.category,
+        ...activityData,
         latitude: activityData.coordinates[0],
         longitude: activityData.coordinates[1],
-        description: activityData.description,
         isLive: true,
-        startTime: activityData.startTime,
-        endTime: activityData.endTime,
-        date: activityData.date,
-        maxParticipants: activityData.maxParticipants,
-        color: activityData.color,
         createdBy: currentUserId,
         creatorName: currentUser?.name || 'Aarav Sharma',
         creatorRole: currentUser?.role || '',
@@ -479,8 +482,19 @@ const CampusMap = () => {
     setMapBounds(CAMPUS_POLYGON);
   };
 
-  // Filter events based on active category & debounced search query
+  // Filter events based on active category, debounced search query, and member access
   const filteredEvents = events.filter(event => {
+    if (event.eventType === 'club') {
+      if (currentUser?.role !== 'supreme_admin' && currentUser?.role !== 'university_admin') {
+        const matchingClub = clubs.find(c => c.clubId === event.clubId);
+        if (!matchingClub || 
+            (!matchingClub.members?.includes(currentUser?.id) && 
+             !matchingClub.adminIds?.includes(currentUser?.id))) {
+          return false;
+        }
+      }
+    }
+
     const matchesFilter = activeFilter === 'All' || event.category === activeFilter;
     const cleanSearch = debouncedSearchQuery.toLowerCase();
     const matchesSearch =
