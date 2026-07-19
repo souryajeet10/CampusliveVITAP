@@ -440,7 +440,32 @@ const CampusMap = () => {
     setIsMapSelectionMode(true);
   };
 
+  // Returns how many events the current user posted today (student-only check)
+  const getStudentPostsToday = () => {
+    if (!currentUserId) return 0;
+    const todayStr = new Date().toISOString().split('T')[0];
+    return events.filter((ev) => {
+      if (ev.createdBy !== currentUserId) return false;
+      // createdAt is already converted to a Date in the mapped state
+      const evDate = ev.createdAt instanceof Date
+        ? ev.createdAt.toISOString().split('T')[0]
+        : '';
+      return evDate === todayStr;
+    }).length;
+  };
+
+  const DAILY_STUDENT_LIMIT = 3;
+  const isStudentRole = !['club_admin', 'university_admin', 'supreme_admin'].includes(currentUser?.role);
+  const studentPostsToday = isStudentRole ? getStudentPostsToday() : 0;
+  const isStudentLimitReached = isStudentRole && studentPostsToday >= DAILY_STUDENT_LIMIT;
+
   const handleCreateActivity = async (activityData) => {
+    // Guard: student daily limit
+    if (isStudentLimitReached) {
+      showToast('Daily limit reached — students can post up to 3 events per day.', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const finalData = {
@@ -843,6 +868,9 @@ const CampusMap = () => {
         onSubmit={handleCreateActivity}
         isSubmitting={isSubmitting}
         onChangeLocation={handleChangeLocation}
+        isStudentLimitReached={isStudentLimitReached}
+        studentPostsToday={studentPostsToday}
+        dailyLimit={DAILY_STUDENT_LIMIT}
       />
 
       {/* Toast Notification Overlay */}

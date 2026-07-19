@@ -16,7 +16,8 @@ import {
   Filter,
   User,
   SlidersHorizontal,
-  X
+  X,
+  Flag
 } from 'lucide-react';
 import { doc, updateDoc, arrayUnion, arrayRemove, increment, collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
@@ -623,14 +624,26 @@ const Events = () => {
                   </div>
 
                   {/* Interested count footer banner */}
-                  <div className="px-5 py-2 bg-slate-950/60 border-t border-slate-900/60 text-[9px] font-bold text-slate-500 flex items-center gap-1.5 justify-between">
+                  <div className="px-5 py-2 bg-slate-950/60 border-t border-slate-900/60 text-[9px] font-bold text-slate-500 flex items-center gap-1.5 justify-between" onClick={(e) => e.stopPropagation()}>
                     <span className="flex items-center gap-1">
                       <Users className="w-3 h-3 text-indigo-400" />
                       <span>{event.interestedCount} Joined</span>
                     </span>
-                    <span className="uppercase tracking-widest text-[8px] text-slate-600">
-                      ID: {event.id.slice(0, 8)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="uppercase tracking-widest text-[8px] text-slate-600">
+                        ID: {event.id.slice(0, 8)}
+                      </span>
+                      {/* Report — student events only */}
+                      {event.eventType === 'student' && (
+                        <button
+                          title="Report this event"
+                          className="flex items-center gap-1 text-[9px] font-bold text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 px-1.5 py-0.5 rounded-md transition-all cursor-pointer active:scale-95 border border-transparent hover:border-rose-500/20"
+                        >
+                          <Flag className="w-2.5 h-2.5" />
+                          <span>Report</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                 </motion.div>

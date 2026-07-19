@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X as CloseIcon, MapPin as MapPinIcon, HelpCircle, AlertCircle, Calendar, Clock } from 'lucide-react';
+import { X as CloseIcon, MapPin as MapPinIcon, HelpCircle, AlertCircle, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import DatePicker from './DatePicker';
 import TimePicker from './TimePicker';
 import { accentGradients, eventCategories, categoryColors, defaultEventCovers } from '../utils/constants';
@@ -26,7 +26,7 @@ const getBuildingName = (coords) => {
   return 'Campus Commons';
 };
 
-const CreateActivityModal = ({ isOpen, onClose, tempCoords, onSubmit, isSubmitting, onChangeLocation }) => {
+const CreateActivityModal = ({ isOpen, onClose, tempCoords, onSubmit, isSubmitting, onChangeLocation, isStudentLimitReached = false, studentPostsToday = 0, dailyLimit = 3 }) => {
   const { currentUser } = useAuth();
   const userRole = currentUser?.role || 'user';
 
@@ -252,6 +252,22 @@ const CreateActivityModal = ({ isOpen, onClose, tempCoords, onSubmit, isSubmitti
             {/* Event Form */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[420px] overflow-y-auto text-xs font-semibold text-slate-400 scrollbar-thin">
               
+              {/* Daily Post Limit Warning (students only) */}
+              {isStudentLimitReached ? (
+                <div className="p-3.5 rounded-xl bg-amber-500/8 border border-amber-500/25 flex gap-2.5 text-[10px] text-amber-300 font-bold leading-normal">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-amber-200 font-extrabold uppercase tracking-wide">Daily Limit Reached</p>
+                    <p>Students can create up to <span className="text-white">{dailyLimit} events per day</span>. You've used all {dailyLimit} posts today. Try again tomorrow!</p>
+                  </div>
+                </div>
+              ) : isStudentLimitReached === false && eventType === 'student' && studentPostsToday > 0 ? (
+                <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/60 flex items-center gap-2 text-[10px] text-slate-400 font-bold">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-indigo-400" />
+                  <span>You've posted <span className="text-white">{studentPostsToday}</span> of <span className="text-white">{dailyLimit}</span> events today.</span>
+                </div>
+              ) : null}
+
               {/* Error Header */}
               {Object.keys(errors).length > 0 && (
                 <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/15 flex gap-2 text-[10px] text-rose-400 font-bold leading-normal">
@@ -425,7 +441,7 @@ const CreateActivityModal = ({ isOpen, onClose, tempCoords, onSubmit, isSubmitti
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isStudentLimitReached}
                   className="px-5 h-9 rounded-lg bg-gradient-to-tr from-indigo-500 via-indigo-650 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-660/15 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
