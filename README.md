@@ -295,16 +295,7 @@ VITE_FIREBASE_MEASUREMENT_ID=
 
 # 📸 Screenshots
 
-> Add screenshots after deployment.
 
-Suggested screenshots
-
-- Dashboard
-- Campus Map
-- Create Activity
-- Event Details
-- Lost & Found
-- Mobile View
 
 ---
 
