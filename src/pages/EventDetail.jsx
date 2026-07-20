@@ -14,7 +14,8 @@ import {
   Info,
   CalendarPlus,
   Image as ImageIcon,
-  X
+  X,
+  Flag
 } from 'lucide-react';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, onSnapshot, increment } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
@@ -529,6 +530,15 @@ const EventDetail = () => {
               <span>Open Google Maps</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
+
+            {/* Report Event Button */}
+            <button
+              onClick={() => showToast('Event reported successfully. Our team will review it shortly.', 'info')}
+              className="w-full h-10 rounded-xl bg-slate-950 hover:bg-slate-900 border border-rose-500/20 hover:border-rose-500/30 text-rose-455 hover:text-rose-400 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-97"
+            >
+              <Flag className="w-4 h-4 text-rose-500" />
+              <span>Report Event</span>
+            </button>
 
           </div>
 

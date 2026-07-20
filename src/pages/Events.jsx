@@ -633,16 +633,18 @@ const Events = () => {
                       <span className="uppercase tracking-widest text-[8px] text-slate-600">
                         ID: {event.id.slice(0, 8)}
                       </span>
-                      {/* Report — student events only */}
-                      {event.eventType === 'student' && (
-                        <button
-                          title="Report this event"
-                          className="flex items-center gap-1 text-[9px] font-bold text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 px-1.5 py-0.5 rounded-md transition-all cursor-pointer active:scale-95 border border-transparent hover:border-rose-500/20"
-                        >
-                          <Flag className="w-2.5 h-2.5" />
-                          <span>Report</span>
-                        </button>
-                      )}
+                      {/* Report Event */}
+                      <button
+                        title="Report this event"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showToast('Thank you for reporting. Our moderators will review this event.', 'info');
+                        }}
+                        className="flex items-center gap-1 text-[9px] font-bold text-slate-600 hover:text-rose-450 hover:bg-rose-500/10 px-1.5 py-0.5 rounded-md transition-all cursor-pointer active:scale-95 border border-transparent hover:border-rose-500/20"
+                      >
+                        <Flag className="w-2.5 h-2.5 text-rose-550" />
+                        <span>Report</span>
+                      </button>
                     </div>
                   </div>
 

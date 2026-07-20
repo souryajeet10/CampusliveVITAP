@@ -10,6 +10,8 @@ import {
   collection,
   getDocs,
   addDoc,
+  deleteDoc,
+  doc,
   Timestamp
 } from 'firebase/firestore';
 
@@ -52,6 +54,8 @@ const dummyUsers = [
   { id: 'VITAP-L3Q7Y8', name: 'Ananya Gupta' },
   { id: 'VITAP-H8V4D6', name: 'Karthik Nair' },
   { id: 'VITAP-M5F9B1', name: 'Sneha Patel' },
+  { id: 'VITAP-S2D9E4', name: 'Vikram Singh' },
+  { id: 'VITAP-B7C3A8', name: 'Neha Verma' },
 ];
 
 // ── Discussion templates keyed by pin type ──
@@ -74,6 +78,18 @@ const lostDiscussions = [
     { user: 1, text: "Agreed. But glad we have this app now at least!" },
     { user: 4, text: "Any update? Did you find it?" },
   ],
+  [
+    { user: 6, text: "I think I saw a lost item matching this description near the basketball court spectator stands yesterday afternoon." },
+    { user: 7, text: "Oh wait, I think someone picked it up and kept it in the sports room. You should ask coach Prasad." },
+    { user: 1, text: "Yes, they usually lock up found sports items there by 7 PM." },
+    { user: 6, text: "Hope you get it back!" },
+  ],
+  [
+    { user: 4, text: "Oh, this is matching the description of what the security guard was holding at the MH-2 entry desk!" },
+    { user: 2, text: "Wait, really? Let me run and check there right away. Thanks a lot!" },
+    { user: 4, text: "No problem. Let us know if you find it." },
+    { user: 7, text: "Yeah, update here so others know it's resolved. Good luck!" },
+  ],
 ];
 
 const foundDiscussions = [
@@ -94,6 +110,18 @@ const foundDiscussions = [
     { user: 0, text: "Any identifying marks? That could help narrow it down." },
     { user: 4, text: "I've seen a similar one with Ravi from 3rd year. Should I check with him?" },
     { user: 5, text: "Yes please! That would be really helpful." },
+  ],
+  [
+    { user: 7, text: "I lost mine last week but it had a different sticker. Hope the owner gets this one back soon!" },
+    { user: 6, text: "Hey, this one actually has 'Rahul' written on the back cover with a black marker. Anyone know a Rahul from ECE?" },
+    { user: 3, text: "Ah, Rahul Sen from ECE section A lost his item yesterday! Let me share this post with him." },
+    { user: 6, text: "Awesome, thanks! Tell him to DM me or comment here." },
+  ],
+  [
+    { user: 2, text: "Nice, where did you hand this over? I can go collect it if it's mine." },
+    { user: 5, text: "I submitted it to the SRK Block main reception desk. The receptionist noted down my details too." },
+    { user: 2, text: "Perfect, heading there now. Appreciate you posting this here!" },
+    { user: 5, text: "You're welcome! Glad to help." },
   ],
 ];
 
@@ -125,12 +153,13 @@ const seedDiscussions = async () => {
     const templates = isLost ? lostDiscussions : foundDiscussions;
     const conversation = templates[pinIndex % templates.length];
 
-    // Check if messages already exist
+        // Check if messages already exist, and delete them if we want to overwrite/re-seed
     const existingMsgs = await getDocs(collection(db, 'lost_found_pins', pinId, 'messages'));
     if (!existingMsgs.empty) {
-      console.log(`  ⏭️  [${pinId}] "${pinData.title}" — already has ${existingMsgs.size} messages, skipping.`);
-      pinIndex++;
-      continue;
+      console.log(`  🗑️  [${pinId}] "${pinData.title}" — clearing ${existingMsgs.size} existing messages...`);
+      for (const msgDoc of existingMsgs.docs) {
+        await deleteDoc(doc(db, 'lost_found_pins', pinId, 'messages', msgDoc.id));
+      }
     }
 
     console.log(`  💬 [${pinId}] "${pinData.title}" (${pinData.type}) — adding ${conversation.length} messages`);

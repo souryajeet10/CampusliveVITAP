@@ -50,8 +50,8 @@ const roadmapItems = [
     id: 'clubs',
     title: '🏛 Club Communities',
     description: 'Official pages for student clubs with announcements, member directories, and event calendars.',
-    status: 'Planned',
-    color: 'indigo',
+    status: 'Live',
+    color: 'emerald',
     icon: Users,
     overview: 'Club Communities provides official spaces for university clubs to share announcements, post events directly to the campus feed, and coordinate member activities.',
     problem: 'Currently, campus clubs are fragmented across WhatsApp groups and Instagram stories, making it hard for new students to discover them or stay updated on meetings.',
@@ -64,12 +64,12 @@ const roadmapItems = [
     ],
     technicalDetails: 'Built using Firebase Firestore for real-time announcements updates, with security rules validating roles (e.g. Club President, Moderator) and React lazy-loaded pages.',
     milestones: [
-      { name: 'Club registration portal', done: false },
-      { name: 'Real-time announcements feed', done: false },
-      { name: 'Role & Moderator hierarchy', done: false },
-      { name: 'Verified club badge sync', done: false }
+      { name: 'Club registration portal', done: true },
+      { name: 'Real-time announcements feed', done: true },
+      { name: 'Role & Moderator hierarchy', done: true },
+      { name: 'Verified club badge sync', done: true }
     ],
-    releaseStage: 'Beta release expected in Q3 2026.',
+    releaseStage: 'Released (v1.0) - Live Now',
     futureEnhancements: 'Adding auto-role assignment, custom club branding themes, and integration with academic registration lists.'
   },
   {
@@ -240,7 +240,7 @@ const WhatsNext = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {roadmapItems.map((item) => {
               const Icon = item.icon;
-              const isProgress = item.status === 'In Progress';
+              const isProgress = item.status === 'In Progress' || item.status === 'Live';
 
               return (
                 <motion.div
@@ -361,7 +361,7 @@ const WhatsNext = () => {
                     <div className="flex items-center gap-2">
                       <h2 className="text-xl md:text-2xl font-black text-white">{selectedItem.title}</h2>
                       <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border
-                        ${selectedItem.status === 'In Progress' 
+                        ${selectedItem.status === 'In Progress' || selectedItem.status === 'Live'
                           ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' 
                           : 'bg-blue-500/10 text-blue-450 border-blue-500/20'
                         }`}

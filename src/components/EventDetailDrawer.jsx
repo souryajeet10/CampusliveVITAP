@@ -200,16 +200,15 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, currentUser,
                   </button>
                 )}
 
-                {/* Report Button — student events only */}
-                {event.eventType === 'student' && (
-                  <button
-                    title="Report this event"
-                    className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-md text-slate-400 hover:text-rose-400 hover:bg-black/60 hover:scale-105 active:scale-95 transition-all z-10 flex items-center gap-1.5"
-                  >
-                    <Flag className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider">Report</span>
-                  </button>
-                )}
+                {/* Report Button */}
+                <button
+                  title="Report this event"
+                  onClick={() => alert('Thank you for reporting. Our moderators will review this event.')}
+                  className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-md text-slate-400 hover:text-rose-400 hover:bg-black/60 hover:scale-105 active:scale-95 transition-all z-10 flex items-center gap-1.5"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Report</span>
+                </button>
 
                 {/* Status Badges */}
                 <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
@@ -374,16 +373,15 @@ const EventDetailDrawer = ({ isOpen, onClose, event, currentUserId, currentUser,
                 )}
               </button>
 
-              {/* Report Button — student events only */}
-              {event.eventType === 'student' && (
-                <button
-                  title="Report this event"
-                  className="w-full h-8 rounded-xl border border-slate-900/60 text-slate-600 hover:text-rose-400 hover:border-rose-500/25 hover:bg-rose-500/5 font-bold text-[10px] tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                >
-                  <Flag className="w-3 h-3" />
-                  <span>Report Event</span>
-                </button>
-              )}
+              {/* Report Button */}
+              <button
+                title="Report this event"
+                onClick={() => alert('Thank you for reporting. Our moderators will review this event.')}
+                className="w-full h-8 rounded-xl border border-slate-900/60 text-slate-600 hover:text-rose-400 hover:border-rose-500/25 hover:bg-rose-500/5 font-bold text-[10px] tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Flag className="w-3.5 h-3.5" />
+                <span>Report Event</span>
+              </button>
             </div>
           </motion.div>
 

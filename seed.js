@@ -1116,6 +1116,116 @@ async function seed() {
         createdAt: Timestamp.fromMillis(nowTimestamp - 46800000),
         expiresAt: Timestamp.fromMillis(expireTime - 46800000),
         resolved: false
+      },
+      {
+        type: 'lost',
+        title: 'Lost Blue Adidas Jacket',
+        description: 'Left my blue Adidas windbreaker jacket on the spectator stand at Turf Court A yesterday evening.',
+        latitude: 16.4952,
+        longitude: 80.5015,
+        createdBy: 'CL-BBBB-2222',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 50000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 50000000),
+        resolved: false
+      },
+      {
+        type: 'found',
+        title: 'Found Silver Ring',
+        description: 'Found a thin silver band ring near the staircase landing of the SRK Block 2nd floor.',
+        latitude: 16.4965,
+        longitude: 80.5008,
+        createdBy: 'CL-AAAA-1111',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 54000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 54000000),
+        resolved: false
+      },
+      {
+        type: 'lost',
+        title: 'Lost HP Pen Stylus',
+        description: 'Lost my black HP active stylus pen during the product design showcase in Seminar Hall 1, SRK Block.',
+        latitude: 16.4965,
+        longitude: 80.5008,
+        createdBy: 'CL-PFWV-TFYY',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 58000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 58000000),
+        resolved: false
+      },
+      {
+        type: 'found',
+        title: 'Found Student ID Card',
+        description: 'Found an ID card belonging to a CSE student near the Food Court plaza entrance. Handed over to the security desk.',
+        latitude: 16.4960,
+        longitude: 80.4990,
+        createdBy: 'CL-BBBB-2222',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 62000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 62000000),
+        resolved: false
+      },
+      {
+        type: 'lost',
+        title: 'Lost Black Glasses Case',
+        description: 'Left a matte black hard case for spectacles in the Central Library quiet study area, floor 1.',
+        latitude: 16.4971,
+        longitude: 80.4995,
+        createdBy: 'CL-AAAA-1111',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 66000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 66000000),
+        resolved: false
+      },
+      {
+        type: 'found',
+        title: 'Found Boat Earbud (Left)',
+        description: 'Found a single grey/black Boat Airdopes earbud (left ear) on the stage floor of the SAC Open Air Theatre.',
+        latitude: 16.4985,
+        longitude: 80.4988,
+        createdBy: 'CL-PFWV-TFYY',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 70000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 70000000),
+        resolved: false
+      },
+      {
+        type: 'lost',
+        title: 'Lost Physics Textbook',
+        description: 'Lost a copy of University Physics by Sears and Zemansky. Probably left it in Block B Room 302.',
+        latitude: 16.4975,
+        longitude: 80.4998,
+        createdBy: 'CL-BBBB-2222',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 74000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 74000000),
+        resolved: false
+      },
+      {
+        type: 'found',
+        title: 'Found Pink Pencil Pouch',
+        description: 'Found a pink zippered pencil pouch containing pens and a ruler in the Block A ground floor lounge.',
+        latitude: 16.4962,
+        longitude: 80.5005,
+        createdBy: 'CL-AAAA-1111',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 78000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 78000000),
+        resolved: false
+      },
+      {
+        type: 'lost',
+        title: 'Lost SanDisk Cruzer 32GB',
+        description: 'Red and black SanDisk 32GB USB flash drive lost near the CAD Lab in SRK Block. Has my project files on it.',
+        latitude: 16.4965,
+        longitude: 80.5008,
+        createdBy: 'CL-PFWV-TFYY',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 82000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 82000000),
+        resolved: false
+      },
+      {
+        type: 'found',
+        title: 'Found Black Leather Jacket',
+        description: 'Found a black faux leather jacket draped over a chair at the Central Lawn Gazebo. Left with the lawn supervisor.',
+        latitude: 16.4960,
+        longitude: 80.4990,
+        createdBy: 'CL-BBBB-2222',
+        createdAt: Timestamp.fromMillis(nowTimestamp - 86000000),
+        expiresAt: Timestamp.fromMillis(expireTime - 86000000),
+        resolved: false
       }
     ];
 
